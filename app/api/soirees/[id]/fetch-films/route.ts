@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { TMDB_BASE_URL, tmdbHeaders } from "@/lib/tmdb"
 
 export async function POST(
@@ -7,13 +8,15 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: soireeId } = await params
-  const supabase = await createClient()
+  const authSupabase = await createClient()
 
   // Auth check
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user } } = await authSupabase.auth.getUser()
   if (!user) {
     return NextResponse.json({ error: "Non autorise" }, { status: 401 })
   }
+
+  const supabase = createAdminClient()
 
   const token = process.env.TMDB_API_READ_ACCESS_TOKEN
   if (!token) {
@@ -23,10 +26,10 @@ export async function POST(
     )
   }
 
-  // Get soiree and winning theme keywords
+  // Get soiree
   const { data: soiree } = await supabase
     .from("sp_soirees")
-    .select("*, winning_theme:sp_themes!sp_soirees_winning_theme_id_fkey(*)")
+    .select("*")
     .eq("id", soireeId)
     .single()
 
@@ -34,8 +37,14 @@ export async function POST(
     return NextResponse.json({ error: "Pas de theme gagnant" }, { status: 400 })
   }
 
-  const theme = soiree.winning_theme as { keywords: string[]; name: string } | null
-  const keywords = theme?.keywords ?? [theme?.name ?? ""]
+  // Get winning theme keywords
+  const { data: theme } = await supabase
+    .from("sp_themes")
+    .select("*")
+    .eq("id", soiree.winning_theme_id)
+    .single()
+
+  const keywords = theme?.keywords?.length ? theme.keywords : [theme?.name ?? "film"]
 
   // Search TMDb by each keyword and aggregate results
   const allMovies: Map<number, { id: number; title: string; poster_path: string | null; overview: string; release_date: string }> = new Map()

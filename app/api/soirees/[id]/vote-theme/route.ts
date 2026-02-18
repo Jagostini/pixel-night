@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 
 export async function POST(
   request: NextRequest,
@@ -12,7 +12,7 @@ export async function POST(
     return NextResponse.json({ error: "Missing fields" }, { status: 400 })
   }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   // Check if already voted
   const { data: existing } = await supabase
@@ -37,32 +37,16 @@ export async function POST(
     return NextResponse.json({ error: voteError.message }, { status: 500 })
   }
 
-  // Increment vote count
-  await supabase.rpc("increment_theme_vote_count" as never, {
-    theme_row_id: soireeThemeId,
-  } as never).then(() => {
-    // fallback: update directly
-  })
+  // Count actual votes and update
+  const { count } = await supabase
+    .from("sp_theme_votes")
+    .select("*", { count: "exact", head: true })
+    .eq("soiree_theme_id", soireeThemeId)
 
-  // Fallback: read current count and update
-  const { data: currentTheme } = await supabase
+  await supabase
     .from("sp_soiree_themes")
-    .select("vote_count")
+    .update({ vote_count: count ?? 1 })
     .eq("id", soireeThemeId)
-    .single()
-
-  if (currentTheme) {
-    // Count actual votes
-    const { count } = await supabase
-      .from("sp_theme_votes")
-      .select("*", { count: "exact", head: true })
-      .eq("soiree_theme_id", soireeThemeId)
-
-    await supabase
-      .from("sp_soiree_themes")
-      .update({ vote_count: count ?? currentTheme.vote_count + 1 })
-      .eq("id", soireeThemeId)
-  }
 
   return NextResponse.json({ success: true })
 }

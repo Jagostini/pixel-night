@@ -26,16 +26,15 @@ export default function ThemesPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  const supabase = createClient()
-
   const loadThemes = useCallback(async () => {
+    const supabase = createClient()
     const { data } = await supabase
       .from("sp_themes")
       .select("*")
       .order("created_at", { ascending: false })
     setThemes(data ?? [])
     setLoading(false)
-  }, [supabase])
+  }, [])
 
   useEffect(() => {
     loadThemes()
@@ -44,7 +43,7 @@ export default function ThemesPage() {
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-
+    const supabase = createClient()
     const {
       data: { user },
     } = await supabase.auth.getUser()
@@ -79,6 +78,7 @@ export default function ThemesPage() {
   }
 
   async function handleToggleActive(theme: SpTheme) {
+    const supabase = createClient()
     const { error } = await supabase
       .from("sp_themes")
       .update({ is_active: !theme.is_active })
@@ -92,6 +92,7 @@ export default function ThemesPage() {
   }
 
   async function handleDelete(id: string) {
+    const supabase = createClient()
     const { error } = await supabase.from("sp_themes").delete().eq("id", id)
     if (error) {
       toast.error(error.message)

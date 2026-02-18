@@ -32,7 +32,6 @@ type SoireeThemeWithJoin = SpSoireeTheme & { theme: SpTheme }
 
 export default function SoireeControlPage() {
   const { id } = useParams<{ id: string }>()
-  const supabase = createClient()
 
   const [soiree, setSoiree] = useState<SpSoiree | null>(null)
   const [themes, setThemes] = useState<SoireeThemeWithJoin[]>([])
@@ -41,6 +40,7 @@ export default function SoireeControlPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null)
 
   const loadData = useCallback(async () => {
+    const supabase = createClient()
     const [soireeRes, themesRes, filmsRes] = await Promise.all([
       supabase.from("sp_soirees").select("*").eq("id", id).single(),
       supabase
@@ -59,7 +59,7 @@ export default function SoireeControlPage() {
     setThemes((themesRes.data as SoireeThemeWithJoin[]) ?? [])
     setFilms((filmsRes.data as SpSoireeFilm[]) ?? [])
     setLoading(false)
-  }, [id, supabase])
+  }, [id])
 
   useEffect(() => {
     loadData()

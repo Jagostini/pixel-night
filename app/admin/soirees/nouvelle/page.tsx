@@ -19,9 +19,8 @@ export default function NouvelleSoireePage() {
   const [saving, setSaving] = useState(false)
   const [eligibleThemes, setEligibleThemes] = useState<SpTheme[]>([])
 
-  const supabase = createClient()
-
   const loadEligibleThemes = useCallback(async () => {
+    const supabase = createClient()
     const now = new Date().toISOString()
     const { data } = await supabase
       .from("sp_themes")
@@ -29,7 +28,7 @@ export default function NouvelleSoireePage() {
       .eq("is_active", true)
       .or(`excluded_until.is.null,excluded_until.lt.${now}`)
     setEligibleThemes(data ?? [])
-  }, [supabase])
+  }, [])
 
   useEffect(() => {
     loadEligibleThemes()
@@ -38,7 +37,7 @@ export default function NouvelleSoireePage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-
+    const supabase = createClient()
     const {
       data: { user },
     } = await supabase.auth.getUser()

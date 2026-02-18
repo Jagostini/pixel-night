@@ -1,18 +1,21 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 
 export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: soireeId } = await params
-  const supabase = await createClient()
+  const authSupabase = await createClient()
 
   // Auth check
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user } } = await authSupabase.auth.getUser()
   if (!user) {
     return NextResponse.json({ error: "Non autorise" }, { status: 401 })
   }
+
+  const supabase = createAdminClient()
 
   // Get soiree to know exclusion count
   const { data: soiree } = await supabase
