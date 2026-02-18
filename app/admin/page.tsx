@@ -4,7 +4,7 @@ import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { SoireeStatus } from "@/components/soiree-status"
-import { Palette, Film, Plus, ArrowRight, LogOut } from "lucide-react"
+import { Palette, Film, Plus, ArrowRight, LogOut, Settings } from "lucide-react"
 import type { SpSoiree, SoireePhase } from "@/lib/types"
 
 async function signOut() {
@@ -49,7 +49,7 @@ export default async function AdminDashboard() {
     .limit(5)
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
+    <div>
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Dashboard organisateur</h1>
@@ -102,7 +102,7 @@ export default async function AdminDashboard() {
       </div>
 
       {/* Quick links */}
-      <div className="mb-8 grid gap-4 sm:grid-cols-2">
+      <div className="mb-8 grid gap-4 sm:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Gerer les themes</CardTitle>
@@ -130,6 +130,25 @@ export default async function AdminDashboard() {
             <Button asChild variant="outline" size="sm">
               <Link href="/admin/soirees">
                 Voir les soirees
+                <ArrowRight className="ml-1 h-4 w-4" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Settings className="h-4 w-4" />
+              Parametres
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-3 text-sm text-muted-foreground">
+              Configurez le token API TMDb et les options.
+            </p>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/admin/parametres">
+                Parametres
                 <ArrowRight className="ml-1 h-4 w-4" />
               </Link>
             </Button>

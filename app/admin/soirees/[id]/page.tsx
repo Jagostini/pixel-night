@@ -20,11 +20,12 @@ import {
   Trophy,
   Film,
   Palette,
-  Play,
   Check,
   Download,
   ExternalLink,
   Crown,
+  Copy,
+  BarChart3,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -123,7 +124,7 @@ export default function SoireeControlPage() {
 
   if (loading || !soiree) {
     return (
-      <div className="mx-auto max-w-5xl px-4 py-8">
+      <div>
         <p className="text-muted-foreground">Chargement...</p>
       </div>
     )
@@ -134,7 +135,7 @@ export default function SoireeControlPage() {
   const totalFilmVotes = films.reduce((sum, f) => sum + f.vote_count, 0)
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
+    <div>
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
@@ -152,12 +153,34 @@ export default function SoireeControlPage() {
             )}
           </div>
         </div>
-        <Button asChild variant="outline" size="sm">
-          <Link href={`/soiree/${id}`} target="_blank">
-            <ExternalLink className="mr-1 h-4 w-4" />
-            Vue publique
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const url = `${window.location.origin}/soiree/${id}`
+              navigator.clipboard.writeText(url)
+              toast.success("Lien copie !")
+            }}
+          >
+            <Copy className="mr-1 h-4 w-4" />
+            Copier le lien
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/soiree/${id}`} target="_blank">
+              <ExternalLink className="mr-1 h-4 w-4" />
+              Vue publique
+            </Link>
+          </Button>
+          {phase === "completed" && (
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/soiree/${id}/resultats`} target="_blank">
+                <BarChart3 className="mr-1 h-4 w-4" />
+                Resultats
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Actions panel */}

@@ -26,7 +26,7 @@ export default async function SoireesListPage() {
     .order("created_at", { ascending: false })
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
+    <div>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Soirees</h1>
         <Button asChild>

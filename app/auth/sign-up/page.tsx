@@ -23,27 +23,31 @@ export default function SignUpPage() {
     setLoading(true)
     setError(null)
 
-    const supabase = createClient()
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo:
-          process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ||
-          `${window.location.origin}/admin`,
-        data: {
-          display_name: displayName || email.split("@")[0],
+    try {
+      const supabase = createClient()
+      const { error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: {
+            display_name: displayName || email.split("@")[0],
+          },
         },
-      },
-    })
+      })
 
-    if (error) {
-      setError(error.message)
+      if (authError) {
+        setError(authError.message)
+        setLoading(false)
+        return
+      }
+
+      router.push("/auth/sign-up-success")
+    } catch {
+      setError("Service indisponible. Verifiez la configuration Supabase.")
       setLoading(false)
       return
     }
-
-    router.push("/auth/sign-up-success")
   }
 
   return (

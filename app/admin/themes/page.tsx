@@ -27,13 +27,18 @@ export default function ThemesPage() {
   const [saving, setSaving] = useState(false)
 
   const loadThemes = useCallback(async () => {
-    const supabase = createClient()
-    const { data } = await supabase
-      .from("sp_themes")
-      .select("*")
-      .order("created_at", { ascending: false })
-    setThemes(data ?? [])
-    setLoading(false)
+    try {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from("sp_themes")
+        .select("*")
+        .order("created_at", { ascending: false })
+      setThemes(data ?? [])
+    } catch {
+      toast.error("Impossible de charger les themes")
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => {
@@ -106,7 +111,7 @@ export default function ThemesPage() {
     theme.excluded_until && new Date(theme.excluded_until) > new Date()
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
+    <div>
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Gestion des themes</h1>

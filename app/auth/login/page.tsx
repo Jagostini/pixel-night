@@ -22,11 +22,17 @@ export default function LoginPage() {
     setLoading(true)
     setError(null)
 
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    try {
+      const supabase = createClient()
+      const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
 
-    if (error) {
-      setError(error.message)
+      if (authError) {
+        setError(authError.message)
+        setLoading(false)
+        return
+      }
+    } catch (err) {
+      setError("Service indisponible. Verifiez la configuration Supabase.")
       setLoading(false)
       return
     }
