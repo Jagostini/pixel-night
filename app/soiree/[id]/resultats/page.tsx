@@ -16,7 +16,13 @@ export default async function ResultatsPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const supabase = await createClient()
+
+  let supabase
+  try {
+    supabase = await createClient()
+  } catch {
+    notFound()
+  }
 
   const { data: soiree } = await supabase
     .from("sp_soirees")

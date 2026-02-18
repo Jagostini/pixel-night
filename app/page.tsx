@@ -7,24 +7,32 @@ import { Film, Vote, ArrowRight, Sparkles } from "lucide-react"
 import type { SpSoiree, SoireePhase } from "@/lib/types"
 
 export default async function Home() {
-  const supabase = await createClient()
+  let activeSoiree = null
+  let pastSoirees: SpSoiree[] | null = null
 
-  // Get active soiree (theme_vote or film_vote)
-  const { data: activeSoiree } = await supabase
-    .from("sp_soirees")
-    .select("*")
-    .in("phase", ["theme_vote", "film_vote"])
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  try {
+    const supabase = await createClient()
 
-  // Get recent completed soirees
-  const { data: pastSoirees } = await supabase
-    .from("sp_soirees")
-    .select("*")
-    .eq("phase", "completed")
-    .order("created_at", { ascending: false })
-    .limit(3)
+    const { data: active } = await supabase
+      .from("sp_soirees")
+      .select("*")
+      .in("phase", ["theme_vote", "film_vote"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    const { data: past } = await supabase
+      .from("sp_soirees")
+      .select("*")
+      .eq("phase", "completed")
+      .order("created_at", { ascending: false })
+      .limit(3)
+
+    activeSoiree = active
+    pastSoirees = past
+  } catch {
+    // Supabase not configured yet - show empty state
+  }
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">

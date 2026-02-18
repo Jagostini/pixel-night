@@ -8,7 +8,12 @@ import { Plus, ArrowRight, Calendar } from "lucide-react"
 import type { SpSoiree, SoireePhase } from "@/lib/types"
 
 export default async function SoireesListPage() {
-  const supabase = await createClient()
+  let supabase
+  try {
+    supabase = await createClient()
+  } catch {
+    redirect("/auth/login")
+  }
   const {
     data: { user },
   } = await supabase.auth.getUser()

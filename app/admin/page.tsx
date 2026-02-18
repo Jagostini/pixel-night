@@ -9,13 +9,22 @@ import type { SpSoiree, SoireePhase } from "@/lib/types"
 
 async function signOut() {
   "use server"
-  const supabase = await createClient()
-  await supabase.auth.signOut()
+  try {
+    const supabase = await createClient()
+    await supabase.auth.signOut()
+  } catch {
+    // Supabase not available
+  }
   redirect("/auth/login")
 }
 
 export default async function AdminDashboard() {
-  const supabase = await createClient()
+  let supabase
+  try {
+    supabase = await createClient()
+  } catch {
+    redirect("/auth/login")
+  }
   const {
     data: { user },
   } = await supabase.auth.getUser()
