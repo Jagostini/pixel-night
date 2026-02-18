@@ -3,8 +3,8 @@ import { notFound } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { tmdbPoster } from "@/lib/tmdb"
-import { Trophy, Film, Palette, Crown } from "lucide-react"
-import type { SpSoireeTheme, SpSoireeFilm, SpTheme } from "@/lib/types"
+import { Trophy, Film, Palette, Crown, ArrowLeft, Users } from "lucide-react"
+import type { SpSoireeTheme, SpSoireeFilm, SpTheme, SoireePhase } from "@/lib/types"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
@@ -48,8 +48,23 @@ export default async function ResultatsPage({
     (t) => t.theme_id === soiree.winning_theme_id
   )
 
+  const totalThemeVotes = (themes as SoireeThemeWithJoin[] | null)?.reduce(
+    (acc, t) => acc + t.vote_count, 0
+  ) ?? 0
+  const totalFilmVotes = (films as SpSoireeFilm[] | null)?.reduce(
+    (acc, f) => acc + f.vote_count, 0
+  ) ?? 0
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
+      <div className="mb-2">
+        <Button variant="ghost" size="sm" asChild>
+          <Link href="/">
+            <ArrowLeft className="mr-1 h-4 w-4" />
+            Retour a l{"'"}accueil
+          </Link>
+        </Button>
+      </div>
       <div className="mb-8 flex flex-col items-center gap-4 text-center">
         <Trophy className="h-10 w-10 text-primary" />
         <h1 className="text-3xl font-bold">Resultats de la soiree</h1>
@@ -62,6 +77,17 @@ export default async function ResultatsPage({
             })}
           </p>
         )}
+        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <Users className="h-4 w-4" />
+            {totalThemeVotes} votes themes
+          </span>
+          <span className="text-border">|</span>
+          <span className="flex items-center gap-1">
+            <Users className="h-4 w-4" />
+            {totalFilmVotes} votes films
+          </span>
+        </div>
       </div>
 
       {/* Winning film */}
@@ -169,9 +195,12 @@ export default async function ResultatsPage({
         </section>
       )}
 
-      <div className="text-center">
+      <div className="flex justify-center gap-3">
         <Button asChild variant="outline">
-          <Link href="/">Retour a l{"'"}accueil</Link>
+          <Link href="/">
+            <ArrowLeft className="mr-1 h-4 w-4" />
+            Retour a l{"'"}accueil
+          </Link>
         </Button>
       </div>
     </div>

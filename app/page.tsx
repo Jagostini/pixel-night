@@ -3,35 +3,81 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { SoireeStatus } from "@/components/soiree-status"
-import { Film, Vote, ArrowRight, Sparkles } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import {
+  Film,
+  Vote,
+  ArrowRight,
+  Sparkles,
+  Users,
+  Trophy,
+  Calendar,
+} from "lucide-react"
 import type { SpSoiree, SoireePhase } from "@/lib/types"
 
+interface SoireeWithCounts extends SpSoiree {
+  theme_vote_total: number
+  film_vote_total: number
+}
+
 export default async function Home() {
-  let activeSoiree = null
-  let pastSoirees: SpSoiree[] | null = null
+  let activeSoirees: SoireeWithCounts[] = []
+  let pastSoirees: SoireeWithCounts[] = []
 
   try {
     const supabase = await createClient()
 
-    const { data: active } = await supabase
+    // Get ALL active soirees (theme_vote or film_vote)
+    const { data: activeData } = await supabase
       .from("sp_soirees")
       .select("*")
       .in("phase", ["theme_vote", "film_vote"])
       .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle()
 
-    const { data: past } = await supabase
+    // Get recent completed soirees
+    const { data: pastData } = await supabase
       .from("sp_soirees")
       .select("*")
       .eq("phase", "completed")
       .order("created_at", { ascending: false })
-      .limit(3)
+      .limit(6)
 
-    activeSoiree = active
-    pastSoirees = past
+    // Fetch vote counts for all soirees
+    const allSoirees = [...(activeData ?? []), ...(pastData ?? [])]
+    const ids = allSoirees.map((s) => s.id)
+
+    let themeVoteCounts: Record<string, number> = {}
+    let filmVoteCounts: Record<string, number> = {}
+
+    if (ids.length > 0) {
+      const { data: tvotes } = await supabase
+        .from("sp_theme_votes")
+        .select("soiree_id")
+        .in("soiree_id", ids)
+
+      const { data: fvotes } = await supabase
+        .from("sp_film_votes")
+        .select("soiree_id")
+        .in("soiree_id", ids)
+
+      for (const v of tvotes ?? []) {
+        themeVoteCounts[v.soiree_id] = (themeVoteCounts[v.soiree_id] ?? 0) + 1
+      }
+      for (const v of fvotes ?? []) {
+        filmVoteCounts[v.soiree_id] = (filmVoteCounts[v.soiree_id] ?? 0) + 1
+      }
+    }
+
+    const withCounts = (s: SpSoiree): SoireeWithCounts => ({
+      ...s,
+      theme_vote_total: themeVoteCounts[s.id] ?? 0,
+      film_vote_total: filmVoteCounts[s.id] ?? 0,
+    })
+
+    activeSoirees = (activeData ?? []).map(withCounts)
+    pastSoirees = (pastData ?? []).map(withCounts)
   } catch {
-    // Supabase not configured yet - show empty state
+    // Supabase not configured yet
   }
 
   return (
@@ -50,10 +96,21 @@ export default async function Home() {
         </p>
       </section>
 
-      {/* Active soiree */}
-      {activeSoiree ? (
+      {/* Active soirees */}
+      {activeSoirees.length > 0 ? (
         <section className="mb-12">
-          <ActiveSoireeCard soiree={activeSoiree} />
+          <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold">
+            <Vote className="h-5 w-5 text-primary" />
+            Votes en cours
+            <Badge variant="outline" className="ml-1">
+              {activeSoirees.length}
+            </Badge>
+          </h2>
+          <div className="grid gap-4">
+            {activeSoirees.map((s) => (
+              <SoireeActiveCard key={s.id} soiree={s} />
+            ))}
+          </div>
         </section>
       ) : (
         <section className="mb-12">
@@ -61,7 +118,7 @@ export default async function Home() {
             <CardContent className="flex flex-col items-center gap-4 py-12 text-center">
               <Vote className="h-10 w-10 text-muted-foreground" />
               <div>
-                <p className="text-lg font-medium">Aucune soiree en cours</p>
+                <p className="text-lg font-medium">Aucun vote en cours</p>
                 <p className="text-sm text-muted-foreground">
                   Revenez bientot pour voter !
                 </p>
@@ -72,43 +129,15 @@ export default async function Home() {
       )}
 
       {/* Past soirees */}
-      {pastSoirees && pastSoirees.length > 0 && (
+      {pastSoirees.length > 0 && (
         <section>
-          <h2 className="mb-4 text-xl font-semibold">Soirees passees</h2>
+          <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold">
+            <Trophy className="h-5 w-5 text-primary" />
+            Soirees passees
+          </h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {pastSoirees.map((s: SpSoiree) => (
-              <Card key={s.id}>
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-medium">
-                      {s.event_date
-                        ? new Date(s.event_date).toLocaleDateString("fr-FR", {
-                            day: "numeric",
-                            month: "long",
-                            year: "numeric",
-                          })
-                        : "Date non definie"}
-                    </CardTitle>
-                    <SoireeStatus phase={s.phase as SoireePhase} />
-                  </div>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-2">
-                  {s.winning_film_title && (
-                    <div className="flex items-center gap-2">
-                      <Film className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium">
-                        {s.winning_film_title}
-                      </span>
-                    </div>
-                  )}
-                  <Button variant="ghost" size="sm" asChild className="self-start">
-                    <Link href={`/soiree/${s.id}/resultats`}>
-                      Voir les resultats
-                      <ArrowRight className="ml-1 h-4 w-4" />
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
+            {pastSoirees.map((s) => (
+              <SoireePastCard key={s.id} soiree={s} />
             ))}
           </div>
         </section>
@@ -117,10 +146,14 @@ export default async function Home() {
   )
 }
 
-function ActiveSoireeCard({ soiree }: { soiree: SpSoiree }) {
+function SoireeActiveCard({ soiree }: { soiree: SoireeWithCounts }) {
   const isThemePhase = soiree.phase === "theme_vote"
+  const totalVotes = isThemePhase
+    ? soiree.theme_vote_total
+    : soiree.film_vote_total
+
   return (
-    <Card className="border-primary/30 bg-card">
+    <Card className="border-primary/30">
       <CardContent className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
@@ -130,11 +163,12 @@ function ActiveSoireeCard({ soiree }: { soiree: SpSoiree }) {
               <Film className="h-6 w-6 text-primary" />
             )}
           </div>
-          <div>
-            <div className="mb-1 flex items-center gap-2">
+          <div className="flex flex-col gap-1">
+            <div className="flex flex-wrap items-center gap-2">
               <SoireeStatus phase={soiree.phase as SoireePhase} />
               {soiree.event_date && (
-                <span className="text-xs text-muted-foreground">
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Calendar className="h-3 w-3" />
                   {new Date(soiree.event_date).toLocaleDateString("fr-FR", {
                     day: "numeric",
                     month: "long",
@@ -147,11 +181,83 @@ function ActiveSoireeCard({ soiree }: { soiree: SpSoiree }) {
                 ? "Choisissez votre theme prefere !"
                 : "Votez pour le film de la soiree !"}
             </p>
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Users className="h-3 w-3" />
+              <span>
+                {totalVotes} {totalVotes === 1 ? "vote" : "votes"} enregistre
+                {totalVotes === 1 ? "" : "s"}
+              </span>
+            </div>
           </div>
         </div>
-        <Button asChild>
+        <Button asChild className="shrink-0">
           <Link href={`/soiree/${soiree.id}`}>
             Voter maintenant
+            <ArrowRight className="ml-1 h-4 w-4" />
+          </Link>
+        </Button>
+      </CardContent>
+    </Card>
+  )
+}
+
+function SoireePastCard({ soiree }: { soiree: SoireeWithCounts }) {
+  const totalVotes = soiree.theme_vote_total + soiree.film_vote_total
+  return (
+    <Card className="flex flex-col">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium">
+            {soiree.event_date
+              ? new Date(soiree.event_date).toLocaleDateString("fr-FR", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })
+              : "Date non definie"}
+          </CardTitle>
+          <SoireeStatus phase={soiree.phase as SoireePhase} />
+        </div>
+      </CardHeader>
+      <CardContent className="flex flex-1 flex-col gap-3">
+        {soiree.winning_film_title && (
+          <div className="flex items-start gap-3">
+            {soiree.winning_film_poster && (
+              <div className="h-20 w-14 shrink-0 overflow-hidden rounded-md bg-secondary">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`https://image.tmdb.org/t/p/w154${soiree.winning_film_poster}`}
+                  alt={soiree.winning_film_title}
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                />
+              </div>
+            )}
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-1">
+                <Trophy className="h-3 w-3 text-primary" />
+                <span className="text-xs text-primary">Film gagnant</span>
+              </div>
+              <span className="text-sm font-medium leading-tight">
+                {soiree.winning_film_title}
+              </span>
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          <Users className="h-3 w-3" />
+          <span>{totalVotes} votes au total</span>
+        </div>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          asChild
+          className="mt-auto self-start"
+        >
+          <Link href={`/soiree/${soiree.id}/resultats`}>
+            Voir les resultats
             <ArrowRight className="ml-1 h-4 w-4" />
           </Link>
         </Button>

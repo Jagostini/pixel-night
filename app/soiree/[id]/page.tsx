@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { tmdbPoster } from "@/lib/tmdb"
 import { toast } from "sonner"
 import type { SoireePhase, SpSoireeTheme, SpSoireeFilm, SpTheme } from "@/lib/types"
-import { Trophy, Film, ArrowRight } from "lucide-react"
+import { Trophy, Film, ArrowRight, ArrowLeft, Users } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import {
@@ -178,6 +178,14 @@ export default function SoireePage() {
   if (phase === "completed") {
     return (
       <div className="mx-auto max-w-5xl px-4 py-8">
+        <div className="mb-2">
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/">
+              <ArrowLeft className="mr-1 h-4 w-4" />
+              Retour a l{"'"}accueil
+            </Link>
+          </Button>
+        </div>
         <div className="flex flex-col items-center gap-6 py-12 text-center">
           <Trophy className="h-12 w-12 text-primary" />
           <h1 className="text-2xl font-bold">Soiree terminee !</h1>
@@ -196,25 +204,55 @@ export default function SoireePage() {
               <p className="text-lg font-medium">{soiree.winning_film_title}</p>
             </div>
           )}
-          <Button asChild variant="outline">
-            <Link href={`/soiree/${id}/resultats`}>
-              Voir tous les resultats
-              <ArrowRight className="ml-1 h-4 w-4" />
-            </Link>
-          </Button>
+          <div className="flex items-center gap-4">
+            <Button asChild>
+              <Link href={`/soiree/${id}/resultats`}>
+                Voir tous les resultats
+                <ArrowRight className="ml-1 h-4 w-4" />
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/">
+                Autres soirees
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
     )
   }
 
+  // Count total votes from current data
+  const totalThemeVotes = (themes as SoireeThemeWithJoin[] | null)?.reduce(
+    (acc, t) => acc + t.vote_count,
+    0
+  ) ?? 0
+  const totalFilmVotes = (films as SpSoireeFilm[] | null)?.reduce(
+    (acc, f) => acc + f.vote_count,
+    0
+  ) ?? 0
+  const currentVotes = phase === "theme_vote" ? totalThemeVotes : totalFilmVotes
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
+      <div className="mb-2">
+        <Button variant="ghost" size="sm" asChild>
+          <Link href="/">
+            <ArrowLeft className="mr-1 h-4 w-4" />
+            Retour a l{"'"}accueil
+          </Link>
+        </Button>
+      </div>
       <div className="mb-6 flex flex-col gap-2">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold">
             {phase === "theme_vote" ? "Choisissez un theme" : "Votez pour un film"}
           </h1>
           <SoireeStatus phase={phase} />
+          <span className="flex items-center gap-1 text-sm text-muted-foreground">
+            <Users className="h-4 w-4" />
+            {currentVotes} vote{currentVotes !== 1 ? "s" : ""}
+          </span>
         </div>
         {soiree.event_date && (
           <p className="text-sm text-muted-foreground">

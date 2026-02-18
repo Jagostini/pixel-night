@@ -1,19 +1,20 @@
-import { createBrowserClient } from "@supabase/ssr";
+// Supabase browser client – singleton
+import { createBrowserClient } from "@supabase/ssr"
 
-let client: ReturnType<typeof createBrowserClient> | null = null;
+let _client: ReturnType<typeof createBrowserClient> | null = null
 
 export function createClient() {
-  if (client) return client;
+  if (_client) return _client
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ""
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!url || !key) {
     throw new Error(
-      "Missing Supabase env vars. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY."
-    );
+      "Supabase non configure : NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY requis."
+    )
   }
 
-  client = createBrowserClient(supabaseUrl, supabaseAnonKey);
-  return client;
+  _client = createBrowserClient(url, key)
+  return _client
 }
