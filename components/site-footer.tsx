@@ -6,7 +6,7 @@ export function SiteFooter() {
       <div className="mx-auto flex max-w-5xl flex-col items-center gap-2 px-4 text-sm text-muted-foreground">
         <div className="flex items-center gap-2">
           <Film className="h-4 w-4" />
-          <span>Soirees Pixels</span>
+          <span>Pixels Night</span>
         </div>
         <p>{"Organisez vos soirees cine entre amis."}</p>
       </div>

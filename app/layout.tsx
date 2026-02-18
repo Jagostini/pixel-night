@@ -11,8 +11,8 @@ const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: {
-    default: "Soirees Pixels",
-    template: "%s | Soirees Pixels",
+    default: "Pixels Night",
+    template: "%s | Pixels Night",
   },
   description:
     "Organisez vos soirees cine : votez pour un theme, puis pour un film, et profitez du spectacle.",

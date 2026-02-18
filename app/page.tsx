@@ -34,7 +34,7 @@ export default async function Home() {
           <Sparkles className="h-8 w-8 text-primary" />
         </div>
         <h1 className="text-balance text-4xl font-bold tracking-tight md:text-5xl">
-          Soirees Pixels
+          Pixels Night
         </h1>
         <p className="max-w-lg text-pretty text-lg text-muted-foreground">
           Votez pour un theme, puis pour un film. Le grand gagnant sera projete
