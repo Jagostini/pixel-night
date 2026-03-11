@@ -46,8 +46,8 @@ export default async function Home() {
     const allSoirees = [...(activeData ?? []), ...(pastData ?? [])]
     const ids = allSoirees.map((s) => s.id)
 
-    let themeVoteCounts: Record<string, number> = {}
-    let filmVoteCounts: Record<string, number> = {}
+    const themeVoteCounts: Record<string, number> = {}
+    const filmVoteCounts: Record<string, number> = {}
 
     if (ids.length > 0) {
       const { data: tvotes } = await supabase

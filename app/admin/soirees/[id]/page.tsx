@@ -26,6 +26,8 @@ import {
   Crown,
   Copy,
   BarChart3,
+  Lightbulb,
+  X,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -37,6 +39,7 @@ export default function SoireeControlPage() {
   const [soiree, setSoiree] = useState<SpSoiree | null>(null)
   const [themes, setThemes] = useState<SoireeThemeWithJoin[]>([])
   const [films, setFilms] = useState<SpSoireeFilm[]>([])
+  const [proposals, setProposals] = useState<Array<{ id: string; tmdb_id: number; title: string; poster_path: string | null; voter_id: string }>>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
 
@@ -59,6 +62,15 @@ export default function SoireeControlPage() {
     setSoiree(soireeRes.data)
     setThemes((themesRes.data as SoireeThemeWithJoin[]) ?? [])
     setFilms((filmsRes.data as SpSoireeFilm[]) ?? [])
+
+    // Load proposals if in film_proposal phase
+    if (soireeRes.data?.phase === "film_proposal") {
+      const proposalsRes = await fetch(`/api/soirees/${id}/proposals`)
+      if (proposalsRes.ok) {
+        setProposals(await proposalsRes.json())
+      }
+    }
+
     setLoading(false)
   }, [id])
 
@@ -98,6 +110,47 @@ export default function SoireeControlPage() {
         return
       }
       toast.success(`${json.count} films recuperes depuis TMDb`)
+      loadData()
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  async function handleStartProposals() {
+    setActionLoading("start-proposals")
+    try {
+      const res = await fetch(`/api/soirees/${id}/start-proposals`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ proposal_duration_minutes: 60 }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        toast.error(json.error)
+        return
+      }
+      toast.success("Phase de propositions ouverte !")
+      loadData()
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  async function handleCloseProposals() {
+    setActionLoading("close-proposals")
+    try {
+      const res = await fetch(`/api/soirees/${id}/close-proposals`, {
+        method: "POST",
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        toast.error(json.error)
+        return
+      }
+      const msg = json.fallback
+        ? `Aucune proposition — ${json.count} films recuperes depuis TMDb`
+        : `${json.count} propositions copiees en vote`
+      toast.success(msg)
       loadData()
     } finally {
       setActionLoading(null)
@@ -204,7 +257,38 @@ export default function SoireeControlPage() {
               )}
             </Button>
           )}
-          {phase === "film_vote" && films.length === 0 && (
+          {phase === "theme_vote" && soiree.proposal_enabled && soiree.winning_theme_id && (
+            <Button
+              variant="outline"
+              onClick={handleStartProposals}
+              disabled={!!actionLoading}
+            >
+              {actionLoading === "start-proposals" ? (
+                "Ouverture..."
+              ) : (
+                <>
+                  <Lightbulb className="mr-1 h-4 w-4" />
+                  Ouvrir les propositions
+                </>
+              )}
+            </Button>
+          )}
+          {phase === "film_proposal" && (
+            <Button
+              onClick={handleCloseProposals}
+              disabled={!!actionLoading}
+            >
+              {actionLoading === "close-proposals" ? (
+                "Cloture..."
+              ) : (
+                <>
+                  <X className="mr-1 h-4 w-4" />
+                  Clore les propositions ({proposals.length})
+                </>
+              )}
+            </Button>
+          )}
+          {phase === "film_vote" && films.length === 0 && !soiree.proposal_enabled && (
             <Button
               onClick={handleFetchFilms}
               disabled={!!actionLoading}
@@ -279,6 +363,38 @@ export default function SoireeControlPage() {
           ))}
         </div>
       </section>
+
+      {/* Film proposals */}
+      {phase === "film_proposal" && (
+        <section className="mb-6">
+          <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold">
+            <Lightbulb className="h-5 w-5 text-primary" />
+            Propositions des invites ({proposals.length})
+          </h2>
+          {proposals.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Aucune proposition pour l&apos;instant.</p>
+          ) : (
+            <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+              {proposals.map((p) => (
+                <Card key={p.id}>
+                  <div className="aspect-[2/3] w-full overflow-hidden rounded-t-lg bg-secondary">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={tmdbPoster(p.poster_path, "w342")}
+                      alt={p.title}
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                    />
+                  </div>
+                  <CardContent className="p-2">
+                    <p className="line-clamp-1 text-xs font-medium">{p.title}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Film votes */}
       {films.length > 0 && (

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { tmdbPoster } from "@/lib/tmdb"
-import { Trophy, Film, Palette, Crown, ArrowLeft, Users } from "lucide-react"
+import { Trophy, Film, Palette, Crown, ArrowLeft, Users, Calendar } from "lucide-react"
 import type { SpSoireeTheme, SpSoireeFilm, SpTheme, SoireePhase } from "@/lib/types"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -74,6 +74,19 @@ export default async function ResultatsPage({
               day: "numeric",
               month: "long",
               year: "numeric",
+            })}
+          </p>
+        )}
+        {soiree.projection_datetime && (
+          <p className="flex items-center justify-center gap-1 text-sm text-muted-foreground">
+            <Calendar className="h-3 w-3" />
+            Projection :{" "}
+            {new Date(soiree.projection_datetime).toLocaleString("fr-FR", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
             })}
           </p>
         )}

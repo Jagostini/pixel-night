@@ -1,6 +1,6 @@
 // ---- Database row types (matching sp_ tables) ----
 
-export type SoireePhase = "theme_vote" | "film_vote" | "completed" | "planned";
+export type SoireePhase = "planned" | "theme_vote" | "film_proposal" | "film_vote" | "completed";
 
 export interface SpProfile {
   id: string;
@@ -35,6 +35,12 @@ export interface SpSoiree {
   exclusion_soirees: number;
   created_by: string | null;
   created_at: string;
+  /** ISO datetime for the scheduled screening */
+  projection_datetime?: string | null;
+  /** Whether guests can propose films during the film_proposal phase */
+  proposal_enabled: boolean;
+  /** When the proposal phase ends (ISO datetime) */
+  proposal_ends_at?: string | null;
 }
 
 export interface SpSoireeTheme {
@@ -58,6 +64,21 @@ export interface SpSoireeFilm {
   duration: number | null;
   trailer_url: string | null;
   vote_count: number;
+}
+
+export interface SpSoireeFilmProposal {
+  id: string;
+  soiree_id: string;
+  voter_id: string;
+  tmdb_id: number;
+  title: string;
+  poster_path: string | null;
+  overview: string | null;
+  release_date: string | null;
+  director: string | null;
+  duration: number | null;
+  trailer_url: string | null;
+  created_at: string;
 }
 
 export interface SpThemeVote {

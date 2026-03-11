@@ -9,12 +9,13 @@ import { ThemeVoteCard } from "@/components/theme-vote-card"
 import { FilmVoteCard } from "@/components/film-vote-card"
 import { CountdownTimer } from "@/components/countdown-timer"
 import { SoireeStatus } from "@/components/soiree-status"
+import { FilmProposalSearch } from "@/components/film-proposal-search"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { tmdbPoster } from "@/lib/tmdb"
 import { toast } from "sonner"
 import type { SoireePhase, SpSoireeTheme, SpSoireeFilm, SpTheme } from "@/lib/types"
-import { Trophy, Film, ArrowRight, ArrowLeft, Users } from "lucide-react"
+import { Trophy, Film, ArrowRight, ArrowLeft, Users, Calendar } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import {
@@ -246,7 +247,11 @@ export default function SoireePage() {
       <div className="mb-6 flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold">
-            {phase === "theme_vote" ? "Choisissez un theme" : "Votez pour un film"}
+            {phase === "theme_vote"
+              ? "Choisissez un theme"
+              : phase === "film_proposal"
+              ? "Proposez des films"
+              : "Votez pour un film"}
           </h1>
           <SoireeStatus phase={phase} />
           <span className="flex items-center gap-1 text-sm text-muted-foreground">
@@ -264,13 +269,34 @@ export default function SoireePage() {
             })}
           </p>
         )}
+        {soiree.projection_datetime && (
+          <p className="flex items-center gap-1 text-sm text-muted-foreground">
+            <Calendar className="h-3 w-3" />
+            Projection :{" "}
+            {new Date(soiree.projection_datetime).toLocaleString("fr-FR", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </p>
+        )}
         {phase === "theme_vote" && soiree.theme_vote_ends_at && (
           <CountdownTimer endsAt={soiree.theme_vote_ends_at} onExpired={() => mutateSoiree()} />
         )}
         {phase === "film_vote" && soiree.film_vote_ends_at && (
           <CountdownTimer endsAt={soiree.film_vote_ends_at} onExpired={() => mutateSoiree()} />
         )}
+        {phase === "film_proposal" && soiree.proposal_ends_at && (
+          <CountdownTimer endsAt={soiree.proposal_ends_at} onExpired={() => mutateSoiree()} />
+        )}
       </div>
+
+      {/* Film proposal phase */}
+      {phase === "film_proposal" && voterId && (
+        <FilmProposalSearch soireeId={id} voterId={voterId} />
+      )}
 
       {/* Theme vote phase */}
       {phase === "theme_vote" && (
