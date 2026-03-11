@@ -1,9 +1,10 @@
 import { Badge } from "@/components/ui/badge"
 import type { SoireePhase } from "@/lib/types"
-import { Vote, Film, Trophy, Calendar } from "lucide-react"
+import { Vote, Film, Trophy, Calendar, Lightbulb } from "lucide-react"
 
 const phaseConfig: Record<SoireePhase, { label: string; icon: React.ElementType; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   theme_vote: { label: "Vote themes", icon: Vote, variant: "default" },
+  film_proposal: { label: "Propositions", icon: Lightbulb, variant: "default" },
   film_vote: { label: "Vote films", icon: Film, variant: "default" },
   completed: { label: "Terminee", icon: Trophy, variant: "secondary" },
   planned: { label: "Planifiee", icon: Calendar, variant: "outline" },

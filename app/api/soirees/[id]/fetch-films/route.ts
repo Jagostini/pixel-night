@@ -1,7 +1,35 @@
+/**
+ * POST /api/soirees/[id]/fetch-films
+ *
+ * Fetches relevant films from TMDb for the soiree's winning theme and inserts
+ * them into sp_soiree_films.
+ *
+ * Algorithm:
+ *  1. Builds queries from individual keywords + a combined query
+ *  2. Filters out films with vote_count < 50 and adult content
+ *  3. Scores each film: score = vote_average × log(vote_count + 1)
+ *  4. Deduplicates by tmdb_id (keeps best score per film)
+ *  5. Sorts by score descending, limits to film_count × 2
+ *  6. Fetches details (director, runtime, trailer) and upserts into DB
+ *
+ * @requires Auth: organisateur session
+ * @returns { success: true, count: number } or { error: string }
+ */
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { TMDB_BASE_URL, tmdbHeaders } from "@/lib/tmdb"
+
+interface TmdbSearchResult {
+  id: number
+  title: string
+  poster_path: string | null
+  overview: string
+  release_date: string
+  vote_average: number
+  vote_count: number
+  adult: boolean
+}
 
 export async function POST(
   _request: NextRequest,
@@ -10,7 +38,6 @@ export async function POST(
   const { id: soireeId } = await params
   const authSupabase = await createClient()
 
-  // Auth check
   const { data: { user } } = await authSupabase.auth.getUser()
   if (!user) {
     return NextResponse.json({ error: "Non autorise" }, { status: 401 })
@@ -26,7 +53,6 @@ export async function POST(
     )
   }
 
-  // Get soiree
   const { data: soiree } = await supabase
     .from("sp_soirees")
     .select("*")
@@ -37,43 +63,55 @@ export async function POST(
     return NextResponse.json({ error: "Pas de theme gagnant" }, { status: 400 })
   }
 
-  // Get winning theme keywords
   const { data: theme } = await supabase
     .from("sp_themes")
     .select("*")
     .eq("id", soiree.winning_theme_id)
     .single()
 
-  const keywords = theme?.keywords?.length ? theme.keywords : [theme?.name ?? "film"]
+  const keywords: string[] = theme?.keywords?.length ? theme.keywords : [theme?.name ?? "film"]
 
-  // Search TMDb by each keyword and aggregate results
-  const allMovies: Map<number, { id: number; title: string; poster_path: string | null; overview: string; release_date: string }> = new Map()
+  // Build list of queries: individual keywords + combined query
+  const queries = [...keywords]
+  if (keywords.length > 1) {
+    queries.push(keywords.join(" "))
+  }
 
-  for (const keyword of keywords) {
+  // Collect all results, dedup by tmdb_id keeping best score
+  const scored = new Map<number, { movie: TmdbSearchResult; score: number }>()
+
+  for (const query of queries) {
     try {
-      const url = `${TMDB_BASE_URL}/search/movie?query=${encodeURIComponent(keyword)}&language=fr-FR&page=1&include_adult=false`
+      const url = `${TMDB_BASE_URL}/search/movie?query=${encodeURIComponent(query)}&language=fr-FR&page=1&include_adult=false`
       const res = await fetch(url, { headers: tmdbHeaders() })
       const data = await res.json()
 
-      for (const movie of data.results ?? []) {
-        if (!allMovies.has(movie.id)) {
-          allMovies.set(movie.id, {
-            id: movie.id,
-            title: movie.title,
-            poster_path: movie.poster_path,
-            overview: movie.overview,
-            release_date: movie.release_date,
-          })
+      for (const movie of (data.results ?? []) as TmdbSearchResult[]) {
+        // Filter: skip adult content and low vote counts
+        if (movie.adult) continue
+        if (movie.vote_count < 50) continue
+
+        const score = movie.vote_average * Math.log(movie.vote_count + 1)
+        const existing = scored.get(movie.id)
+        if (!existing || score > existing.score) {
+          scored.set(movie.id, { movie, score })
         }
       }
     } catch {
-      // continue with other keywords
+      // continue with other queries
     }
   }
 
-  // Take the first N films
+  // Sort by score descending, take film_count * 2
   const filmCount = soiree.film_count ?? 10
-  const selectedMovies = Array.from(allMovies.values()).slice(0, filmCount)
+  const selectedMovies = Array.from(scored.values())
+    .sort((a, b) => b.score - a.score)
+    .slice(0, filmCount * 2)
+    .map((entry) => entry.movie)
+
+  if (selectedMovies.length === 0) {
+    return NextResponse.json({ error: "Aucun film trouve sur TMDb" }, { status: 404 })
+  }
 
   // Fetch details for each film (director, runtime, trailer)
   const filmsToInsert = await Promise.all(
@@ -121,11 +159,6 @@ export async function POST(
     })
   )
 
-  if (filmsToInsert.length === 0) {
-    return NextResponse.json({ error: "Aucun film trouve sur TMDb" }, { status: 404 })
-  }
-
-  // Insert films (upsert to avoid duplicates)
   const { error } = await supabase.from("sp_soiree_films").upsert(
     filmsToInsert,
     { onConflict: "soiree_id,tmdb_id" }

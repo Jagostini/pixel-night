@@ -7,15 +7,19 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import type { SpTheme } from "@/lib/types"
 
 export default function NouvelleSoireePage() {
   const router = useRouter()
   const [eventDate, setEventDate] = useState("")
+  const [projectionDatetime, setProjectionDatetime] = useState("")
   const [themeCount, setThemeCount] = useState(4)
   const [filmCount, setFilmCount] = useState(10)
   const [voteDuration, setVoteDuration] = useState<string>("")
+  const [proposalEnabled, setProposalEnabled] = useState(false)
+  const [proposalDuration, setProposalDuration] = useState<string>("60")
   const [saving, setSaving] = useState(false)
   const [eligibleThemes, setEligibleThemes] = useState<SpTheme[]>([])
 
@@ -31,6 +35,7 @@ export default function NouvelleSoireePage() {
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadEligibleThemes()
   }, [loadEligibleThemes])
 
@@ -56,7 +61,6 @@ export default function NouvelleSoireePage() {
       return
     }
 
-    // Create soiree
     const durationMinutes = voteDuration ? parseInt(voteDuration, 10) : null
     const themeVoteEnds = durationMinutes
       ? new Date(Date.now() + durationMinutes * 60 * 1000).toISOString()
@@ -66,12 +70,14 @@ export default function NouvelleSoireePage() {
       .from("sp_soirees")
       .insert({
         event_date: eventDate || null,
+        projection_datetime: projectionDatetime || null,
         theme_count: themeCount,
         film_count: filmCount,
         vote_duration_minutes: durationMinutes,
         theme_vote_ends_at: themeVoteEnds,
         phase: "theme_vote",
         created_by: user.id,
+        proposal_enabled: proposalEnabled,
       })
       .select()
       .single()
@@ -82,7 +88,6 @@ export default function NouvelleSoireePage() {
       return
     }
 
-    // Randomly select N themes
     const shuffled = [...eligibleThemes].sort(() => Math.random() - 0.5)
     const selected = shuffled.slice(0, themeCount)
 
@@ -125,6 +130,17 @@ export default function NouvelleSoireePage() {
               />
             </div>
             <div className="flex flex-col gap-2">
+              <Label htmlFor="projection-datetime">
+                Horaire de projection (optionnel)
+              </Label>
+              <Input
+                id="projection-datetime"
+                type="datetime-local"
+                value={projectionDatetime}
+                onChange={(e) => setProjectionDatetime(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
               <Label htmlFor="theme-count">
                 Nombre de themes ({eligibleThemes.length} eligibles)
               </Label>
@@ -161,6 +177,37 @@ export default function NouvelleSoireePage() {
                 placeholder="ex: 30"
               />
             </div>
+
+            <div className="rounded-lg border p-4 flex flex-col gap-3">
+              <div className="flex items-center gap-3">
+                <Checkbox
+                  id="proposal-enabled"
+                  checked={proposalEnabled}
+                  onCheckedChange={(checked) =>
+                    setProposalEnabled(checked === true)
+                  }
+                />
+                <Label htmlFor="proposal-enabled" className="cursor-pointer">
+                  Permettre aux invites de proposer des films
+                </Label>
+              </div>
+              {proposalEnabled && (
+                <div className="flex flex-col gap-2 ml-6">
+                  <Label htmlFor="proposal-duration">
+                    Duree des propositions (minutes)
+                  </Label>
+                  <Input
+                    id="proposal-duration"
+                    type="number"
+                    min={1}
+                    value={proposalDuration}
+                    onChange={(e) => setProposalDuration(e.target.value)}
+                    placeholder="ex: 60"
+                  />
+                </div>
+              )}
+            </div>
+
             <Button type="submit" disabled={saving} className="mt-2">
               {saving ? "Creation..." : "Creer la soiree"}
             </Button>
