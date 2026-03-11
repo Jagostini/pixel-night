@@ -9,13 +9,19 @@ export async function POST(
   const { id: soireeId } = await params
   const authSupabase = await createClient()
 
-  // Auth check
   const { data: { user } } = await authSupabase.auth.getUser()
   if (!user) {
     return NextResponse.json({ error: "Non autorise" }, { status: 401 })
   }
 
   const supabase = createAdminClient()
+
+  // Fetch the soiree to know whether proposals are enabled
+  const { data: soiree } = await supabase
+    .from("sp_soirees")
+    .select("proposal_enabled")
+    .eq("id", soireeId)
+    .single()
 
   // Get all themes for this soiree, ordered by votes desc
   const { data: themes } = await supabase
@@ -33,12 +39,15 @@ export async function POST(
   const tied = themes.filter((t) => t.vote_count === maxVotes)
   const winner = tied[Math.floor(Math.random() * tied.length)]
 
-  // Update soiree
+  // If proposal_enabled, stay in theme_vote so the admin can open proposals next.
+  // Otherwise advance directly to film_vote (classic flow).
+  const nextPhase = soiree?.proposal_enabled ? "theme_vote" : "film_vote"
+
   const { error } = await supabase
     .from("sp_soirees")
     .update({
       winning_theme_id: winner.theme_id,
-      phase: "film_vote",
+      phase: nextPhase,
     })
     .eq("id", soireeId)
 
