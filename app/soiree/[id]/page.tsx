@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { tmdbPoster } from "@/lib/tmdb"
 import { toast } from "sonner"
 import type { SoireePhase, SpSoireeTheme, SpSoireeFilm, SpTheme } from "@/lib/types"
-import { Trophy, Film, ArrowRight, ArrowLeft, Users, Calendar } from "lucide-react"
+import { Trophy, Film, ArrowRight, ArrowLeft, Users, Calendar, XCircle } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import {
@@ -176,6 +176,31 @@ export default function SoireePage() {
 
   const phase = soiree.phase as SoireePhase
 
+  if (phase === "cancelled") {
+    return (
+      <div className="mx-auto max-w-5xl px-4 py-8">
+        <div className="mb-2">
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/">
+              <ArrowLeft className="mr-1 h-4 w-4" />
+              Retour a l{"'"}accueil
+            </Link>
+          </Button>
+        </div>
+        <div className="flex flex-col items-center gap-4 py-12 text-center">
+          <XCircle className="h-12 w-12 text-destructive" />
+          <h1 className="text-2xl font-bold">Soiree annulee</h1>
+          <p className="text-muted-foreground">
+            Cette soiree a ete annulee par l{"'"}organisateur.
+          </p>
+          <Button asChild variant="outline">
+            <Link href="/">Retour a l{"'"}accueil</Link>
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   if (phase === "completed") {
     return (
       <div className="mx-auto max-w-5xl px-4 py-8">
@@ -272,11 +297,8 @@ export default function SoireePage() {
         {soiree.projection_datetime && (
           <p className="flex items-center gap-1 text-sm text-muted-foreground">
             <Calendar className="h-3 w-3" />
-            Projection :{" "}
-            {new Date(soiree.projection_datetime).toLocaleString("fr-FR", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
+            Projection a{" "}
+            {new Date(soiree.projection_datetime).toLocaleTimeString("fr-FR", {
               hour: "2-digit",
               minute: "2-digit",
             })}

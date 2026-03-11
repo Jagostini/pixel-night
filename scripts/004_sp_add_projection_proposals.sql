@@ -11,10 +11,10 @@ ALTER TABLE sp_soirees ADD COLUMN IF NOT EXISTS projection_datetime TIMESTAMPTZ;
 -- Phase 4: Film proposals by guests
 -- ============================================================
 
--- Extend the phase CHECK constraint to include 'film_proposal'
+-- Extend the phase CHECK constraint to include 'film_proposal' and 'cancelled'
 ALTER TABLE sp_soirees DROP CONSTRAINT IF EXISTS sp_soirees_phase_check;
 ALTER TABLE sp_soirees ADD CONSTRAINT sp_soirees_phase_check
-  CHECK (phase IN ('planned', 'theme_vote', 'film_proposal', 'film_vote', 'completed'));
+  CHECK (phase IN ('planned', 'theme_vote', 'film_proposal', 'film_vote', 'completed', 'cancelled'));
 
 -- New columns on sp_soirees
 ALTER TABLE sp_soirees ADD COLUMN IF NOT EXISTS proposal_enabled BOOLEAN NOT NULL DEFAULT FALSE;

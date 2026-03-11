@@ -1,6 +1,6 @@
 // ---- Database row types (matching sp_ tables) ----
 
-export type SoireePhase = "planned" | "theme_vote" | "film_proposal" | "film_vote" | "completed";
+export type SoireePhase = "planned" | "theme_vote" | "film_proposal" | "film_vote" | "completed" | "cancelled";
 
 export interface SpProfile {
   id: string;

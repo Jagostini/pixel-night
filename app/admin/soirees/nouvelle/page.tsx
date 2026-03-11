@@ -14,7 +14,7 @@ import type { SpTheme } from "@/lib/types"
 export default function NouvelleSoireePage() {
   const router = useRouter()
   const [eventDate, setEventDate] = useState("")
-  const [projectionDatetime, setProjectionDatetime] = useState("")
+  const [projectionTime, setProjectionTime] = useState("")
   const [themeCount, setThemeCount] = useState(4)
   const [filmCount, setFilmCount] = useState(10)
   const [voteDuration, setVoteDuration] = useState<string>("")
@@ -70,7 +70,9 @@ export default function NouvelleSoireePage() {
       .from("sp_soirees")
       .insert({
         event_date: eventDate || null,
-        projection_datetime: projectionDatetime || null,
+        projection_datetime: (eventDate && projectionTime)
+          ? new Date(`${eventDate}T${projectionTime}`).toISOString()
+          : null,
         theme_count: themeCount,
         film_count: filmCount,
         vote_duration_minutes: durationMinutes,
@@ -130,15 +132,22 @@ export default function NouvelleSoireePage() {
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="projection-datetime">
-                Horaire de projection (optionnel)
+              <Label htmlFor="projection-time">
+                Heure de projection (optionnel)
               </Label>
               <Input
-                id="projection-datetime"
-                type="datetime-local"
-                value={projectionDatetime}
-                onChange={(e) => setProjectionDatetime(e.target.value)}
+                id="projection-time"
+                type="time"
+                value={projectionTime}
+                onChange={(e) => setProjectionTime(e.target.value)}
+                disabled={!eventDate}
+                placeholder="ex: 20:30"
               />
+              {!eventDate && (
+                <p className="text-xs text-muted-foreground">
+                  Renseignez d&apos;abord la date de la soiree.
+                </p>
+              )}
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="theme-count">

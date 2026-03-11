@@ -80,11 +80,8 @@ export default async function ResultatsPage({
         {soiree.projection_datetime && (
           <p className="flex items-center justify-center gap-1 text-sm text-muted-foreground">
             <Calendar className="h-3 w-3" />
-            Projection :{" "}
-            {new Date(soiree.projection_datetime).toLocaleString("fr-FR", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
+            Projection a{" "}
+            {new Date(soiree.projection_datetime).toLocaleTimeString("fr-FR", {
               hour: "2-digit",
               minute: "2-digit",
             })}
