@@ -2,6 +2,14 @@
 
 export type SoireePhase = "planned" | "theme_vote" | "film_proposal" | "film_vote" | "completed" | "cancelled";
 
+export interface SpSalle {
+  id: string
+  name: string
+  slug: string
+  created_by: string
+  created_at: string
+}
+
 export interface SpProfile {
   id: string;
   display_name: string | null;
@@ -17,6 +25,7 @@ export interface SpTheme {
   excluded_until: string | null;
   created_by: string | null;
   created_at: string;
+  salle_id?: string | null;
 }
 
 export interface SpSoiree {
@@ -41,6 +50,7 @@ export interface SpSoiree {
   proposal_enabled: boolean;
   /** When the proposal phase ends (ISO datetime) */
   proposal_ends_at?: string | null;
+  salle_id?: string | null;
 }
 
 export interface SpSoireeTheme {

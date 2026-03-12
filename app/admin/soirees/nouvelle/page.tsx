@@ -13,6 +13,7 @@ import type { SpTheme } from "@/lib/types"
 
 export default function NouvelleSoireePage() {
   const router = useRouter()
+  const [salleId, setSalleId] = useState<string | null>(null)
   const [eventDate, setEventDate] = useState("")
   const [projectionTime, setProjectionTime] = useState("")
   const [themeCount, setThemeCount] = useState(4)
@@ -23,21 +24,42 @@ export default function NouvelleSoireePage() {
   const [saving, setSaving] = useState(false)
   const [eligibleThemes, setEligibleThemes] = useState<SpTheme[]>([])
 
-  const loadEligibleThemes = useCallback(async () => {
+  const loadSalleAndThemes = useCallback(async () => {
     const supabase = createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) return
+
+    const { data: salle } = await supabase
+      .from("sp_salles")
+      .select("id")
+      .eq("created_by", user.id)
+      .maybeSingle()
+
+    setSalleId(salle?.id ?? null)
+
     const now = new Date().toISOString()
-    const { data } = await supabase
+    let query = supabase
       .from("sp_themes")
       .select("*")
       .eq("is_active", true)
       .or(`excluded_until.is.null,excluded_until.lt.${now}`)
+
+    if (salle) {
+      query = query.eq("salle_id", salle.id)
+    } else {
+      query = query.eq("created_by", user.id)
+    }
+
+    const { data } = await query
     setEligibleThemes(data ?? [])
   }, [])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadEligibleThemes()
-  }, [loadEligibleThemes])
+    loadSalleAndThemes()
+  }, [loadSalleAndThemes])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -80,6 +102,7 @@ export default function NouvelleSoireePage() {
         phase: "theme_vote",
         created_by: user.id,
         proposal_enabled: proposalEnabled,
+        salle_id: salleId,
       })
       .select()
       .single()

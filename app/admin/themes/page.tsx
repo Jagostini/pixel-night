@@ -19,6 +19,8 @@ import { Plus, Trash2, Palette } from "lucide-react"
 import type { SpTheme } from "@/lib/types"
 
 export default function ThemesPage() {
+  const [salleId, setSalleId] = useState<string | null | undefined>(undefined)
+  const [userId, setUserId] = useState<string | null>(null)
   const [themes, setThemes] = useState<SpTheme[]>([])
   const [loading, setLoading] = useState(true)
   const [newName, setNewName] = useState("")
@@ -26,20 +28,49 @@ export default function ThemesPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [saving, setSaving] = useState(false)
 
+  // Fetch salle once on mount
+  useEffect(() => {
+    async function fetchSalle() {
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) return
+      setUserId(user.id)
+      const { data } = await supabase
+        .from("sp_salles")
+        .select("id")
+        .eq("created_by", user.id)
+        .maybeSingle()
+      setSalleId(data?.id ?? null)
+    }
+    fetchSalle()
+  }, [])
+
   const loadThemes = useCallback(async () => {
+    // Wait until salle is resolved (undefined = not yet fetched)
+    if (salleId === undefined) return
     try {
       const supabase = createClient()
-      const { data } = await supabase
+      let query = supabase
         .from("sp_themes")
         .select("*")
         .order("created_at", { ascending: false })
+
+      if (salleId) {
+        query = query.eq("salle_id", salleId)
+      } else if (userId) {
+        query = query.eq("created_by", userId)
+      }
+
+      const { data } = await query
       setThemes(data ?? [])
     } catch {
       toast.error("Impossible de charger les themes")
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [salleId, userId])
 
   useEffect(() => {
     loadThemes()
@@ -68,6 +99,7 @@ export default function ThemesPage() {
       name: newName,
       keywords,
       created_by: user.id,
+      salle_id: salleId ?? null,
     })
 
     if (error) {

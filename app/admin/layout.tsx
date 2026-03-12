@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useEffect, useState } from "react"
 import { cn } from "@/lib/utils"
 import {
   LayoutDashboard,
@@ -9,8 +10,10 @@ import {
   Calendar,
   Settings,
   ChevronLeft,
+  Clapperboard,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { createClient } from "@/lib/supabase/client"
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
@@ -25,6 +28,24 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
+  const [salleName, setSalleName] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchSalle() {
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) return
+      const { data } = await supabase
+        .from("sp_salles")
+        .select("name")
+        .eq("created_by", user.id)
+        .maybeSingle()
+      setSalleName(data?.name ?? null)
+    }
+    fetchSalle()
+  }, [pathname])
 
   function isActive(href: string, exact: boolean) {
     if (exact) return pathname === href
@@ -69,6 +90,12 @@ export default function AdminLayout({
             </Link>
           )
         })}
+        {salleName && (
+          <div className="ml-auto flex items-center gap-1.5 whitespace-nowrap rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground">
+            <Clapperboard className="h-3.5 w-3.5" />
+            {salleName}
+          </div>
+        )}
       </nav>
 
       {/* Back button breadcrumb */}

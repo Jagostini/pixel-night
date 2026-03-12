@@ -20,10 +20,23 @@ export default async function SoireesListPage() {
 
   if (!user) redirect("/auth/login")
 
-  const { data: soirees } = await supabase
-    .from("sp_soirees")
-    .select("*")
-    .order("created_at", { ascending: false })
+  const { data: salle } = await supabase
+    .from("sp_salles")
+    .select("id")
+    .eq("created_by", user.id)
+    .maybeSingle()
+
+  const { data: soirees } = salle
+    ? await supabase
+        .from("sp_soirees")
+        .select("*")
+        .eq("salle_id", salle.id)
+        .order("created_at", { ascending: false })
+    : await supabase
+        .from("sp_soirees")
+        .select("*")
+        .eq("created_by", user.id)
+        .order("created_at", { ascending: false })
 
   return (
     <div>
