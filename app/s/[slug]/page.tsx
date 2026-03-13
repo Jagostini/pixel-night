@@ -13,6 +13,7 @@ import {
   Users,
   Trophy,
   Calendar,
+  Clock,
 } from "lucide-react"
 import type { SpSoiree, SoireePhase } from "@/lib/types"
 
@@ -36,6 +37,13 @@ export default async function SallePage({
     .maybeSingle()
 
   if (!salle) notFound()
+
+  const { data: upcomingData } = await supabase
+    .from("sp_soirees")
+    .select("*")
+    .eq("phase", "planned")
+    .eq("salle_id", salle.id)
+    .order("event_date", { ascending: true })
 
   const { data: activeData } = await supabase
     .from("sp_soirees")
@@ -83,6 +91,7 @@ export default async function SallePage({
     film_vote_total: filmVoteCounts[s.id] ?? 0,
   })
 
+  const upcomingSoirees = upcomingData ?? []
   const activeSoirees = (activeData ?? []).map(withCounts)
   const pastSoirees = (pastData ?? []).map(withCounts)
 
@@ -97,6 +106,24 @@ export default async function SallePage({
           {salle.name}
         </h1>
       </section>
+
+      {/* Upcoming soirees */}
+      {upcomingSoirees.length > 0 && (
+        <section className="mb-10">
+          <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold">
+            <Clock className="h-5 w-5 text-primary" />
+            Prochainement
+            <Badge variant="outline" className="ml-1">
+              {upcomingSoirees.length}
+            </Badge>
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {upcomingSoirees.map((s) => (
+              <SoireeUpcomingCard key={s.id} soiree={s} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Active soirees */}
       {activeSoirees.length > 0 ? (
@@ -263,6 +290,38 @@ function SoireePastCard({ soiree }: { soiree: SoireeWithCounts }) {
             <ArrowRight className="ml-1 h-4 w-4" />
           </Link>
         </Button>
+      </CardContent>
+    </Card>
+  )
+}
+
+function SoireeUpcomingCard({ soiree }: { soiree: SpSoiree }) {
+  return (
+    <Card className="border-dashed">
+      <CardContent className="flex flex-col gap-3 p-5">
+        <div className="flex items-center gap-2">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-secondary">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <Badge variant="secondary" className="text-xs">
+            Bientot
+          </Badge>
+        </div>
+        {soiree.event_date ? (
+          <p className="flex items-center gap-1 text-sm font-medium">
+            <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+            {new Date(soiree.event_date).toLocaleDateString("fr-FR", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+            })}
+          </p>
+        ) : (
+          <p className="text-sm text-muted-foreground">Date a confirmer</p>
+        )}
+        <p className="text-xs text-muted-foreground">
+          Les votes ouvriront prochainement
+        </p>
       </CardContent>
     </Card>
   )

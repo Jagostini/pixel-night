@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { tmdbPoster } from "@/lib/tmdb"
 import { toast } from "sonner"
-import type { SoireePhase, SpSoireeTheme, SpSoireeFilm, SpTheme } from "@/lib/types"
+import type { SoireePhase, SpSoireeTheme, SpSoireeFilm, SpTheme, SpSoiree } from "@/lib/types"
 import { Trophy, Film, ArrowRight, ArrowLeft, Users, Calendar, XCircle } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dialog"
 
 type SoireeThemeWithJoin = SpSoireeTheme & { theme: SpTheme }
+type SpSoireeWithSalle = SpSoiree & { salle?: { id: string; slug: string; name: string } | null }
 
 const fetcher = async (url: string) => {
   const supabase = createClient()
@@ -36,7 +37,7 @@ const fetcher = async (url: string) => {
   if (table === "soiree") {
     const { data } = await supabase
       .from("sp_soirees")
-      .select("*")
+      .select("*, salle:sp_salles(id, slug, name)")
       .eq("id", soireeId)
       .single()
     return data
@@ -78,9 +79,15 @@ export default function SoireePage() {
     refreshInterval: 5000,
   })
 
+  const soireeWithSalle = soiree as SpSoireeWithSalle | undefined
+  const salleSlug = soireeWithSalle?.salle?.slug
+  const salleHref = salleSlug ? `/s/${salleSlug}` : "/"
+
   useEffect(() => {
-    setVoterId(getVoterId())
-  }, [])
+    if (soiree) {
+      setVoterId(getVoterId(salleSlug))
+    }
+  }, [soiree, salleSlug])
 
   // Check existing votes
   useEffect(() => {
@@ -181,9 +188,9 @@ export default function SoireePage() {
       <div className="mx-auto max-w-5xl px-4 py-8">
         <div className="mb-2">
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/">
+            <Link href={salleHref}>
               <ArrowLeft className="mr-1 h-4 w-4" />
-              Retour a l{"'"}accueil
+              Retour a la salle
             </Link>
           </Button>
         </div>
@@ -194,7 +201,7 @@ export default function SoireePage() {
             Cette soiree a ete annulee par l{"'"}organisateur.
           </p>
           <Button asChild variant="outline">
-            <Link href="/">Retour a l{"'"}accueil</Link>
+            <Link href={salleHref}>Retour a la salle</Link>
           </Button>
         </div>
       </div>
@@ -206,9 +213,9 @@ export default function SoireePage() {
       <div className="mx-auto max-w-5xl px-4 py-8">
         <div className="mb-2">
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/">
+            <Link href={salleHref}>
               <ArrowLeft className="mr-1 h-4 w-4" />
-              Retour a l{"'"}accueil
+              Retour a la salle
             </Link>
           </Button>
         </div>
@@ -238,7 +245,7 @@ export default function SoireePage() {
               </Link>
             </Button>
             <Button asChild variant="outline">
-              <Link href="/">
+              <Link href={salleHref}>
                 Autres soirees
               </Link>
             </Button>
@@ -263,9 +270,9 @@ export default function SoireePage() {
     <div className="mx-auto max-w-5xl px-4 py-8">
       <div className="mb-2">
         <Button variant="ghost" size="sm" asChild>
-          <Link href="/">
+          <Link href={salleHref}>
             <ArrowLeft className="mr-1 h-4 w-4" />
-            Retour a l{"'"}accueil
+            Retour a la salle
           </Link>
         </Button>
       </div>
