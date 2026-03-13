@@ -26,11 +26,14 @@ export default async function ResultatsPage({
 
   const { data: soiree } = await supabase
     .from("sp_soirees")
-    .select("*")
+    .select("*, salle:sp_salles(id, slug, name)")
     .eq("id", id)
     .single()
 
   if (!soiree) notFound()
+
+  const salleSlug = (soiree as typeof soiree & { salle?: { slug: string } | null }).salle?.slug
+  const salleHref = salleSlug ? `/s/${salleSlug}` : "/"
 
   const { data: themes } = await supabase
     .from("sp_soiree_themes")
@@ -59,9 +62,9 @@ export default async function ResultatsPage({
     <div className="mx-auto max-w-5xl px-4 py-8">
       <div className="mb-2">
         <Button variant="ghost" size="sm" asChild>
-          <Link href="/">
+          <Link href={salleHref}>
             <ArrowLeft className="mr-1 h-4 w-4" />
-            Retour a l{"'"}accueil
+            Retour a la salle
           </Link>
         </Button>
       </div>
@@ -207,9 +210,9 @@ export default async function ResultatsPage({
 
       <div className="flex justify-center gap-3">
         <Button asChild variant="outline">
-          <Link href="/">
+          <Link href={salleHref}>
             <ArrowLeft className="mr-1 h-4 w-4" />
-            Retour a l{"'"}accueil
+            Retour a la salle
           </Link>
         </Button>
       </div>

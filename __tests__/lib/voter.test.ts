@@ -49,4 +49,20 @@ describe("getVoterId", () => {
     const id = getVoterId()
     expect(id).toBe("existing-voter-uuid")
   })
+
+  it("creates a separate voter ID per salle slug", () => {
+    const idA = getVoterId("salle-a")
+    const idB = getVoterId("salle-b")
+    expect(idA).toBeTruthy()
+    expect(idB).toBeTruthy()
+    expect(idA).not.toBe(idB)
+    expect(localStorageMock.getItem("sp_voter_id_salle-a")).toBe(idA)
+    expect(localStorageMock.getItem("sp_voter_id_salle-b")).toBe(idB)
+  })
+
+  it("scoped voter ID is independent from global voter ID", () => {
+    const global = getVoterId()
+    const scoped = getVoterId("my-salle")
+    expect(global).not.toBe(scoped)
+  })
 })

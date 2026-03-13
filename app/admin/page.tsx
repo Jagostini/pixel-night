@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { SoireeStatus } from "@/components/soiree-status"
 import { Palette, Film, Plus, ArrowRight, LogOut, Settings } from "lucide-react"
 import type { SpSoiree, SoireePhase } from "@/lib/types"
+import { CreateSalleForm } from "./create-salle-form"
 
 async function signOut() {
   "use server"
@@ -31,20 +32,45 @@ export default async function AdminDashboard() {
 
   if (!user) redirect("/auth/login")
 
-  // Counts
+  const { data: salle } = await supabase
+    .from("sp_salles")
+    .select("*")
+    .eq("created_by", user.id)
+    .maybeSingle()
+
+  if (!salle) {
+    return (
+      <div>
+        <div className="mb-6 flex items-center justify-end">
+          <form action={signOut}>
+            <Button variant="ghost" size="sm" type="submit">
+              <LogOut className="mr-1 h-4 w-4" />
+              Deconnexion
+            </Button>
+          </form>
+        </div>
+        <CreateSalleForm />
+      </div>
+    )
+  }
+
+  // Scoped counts
   const { count: themeCount } = await supabase
     .from("sp_themes")
     .select("*", { count: "exact", head: true })
+    .eq("salle_id", salle.id)
 
   const { data: activeSoirees } = await supabase
     .from("sp_soirees")
     .select("*")
     .in("phase", ["theme_vote", "film_vote"])
+    .eq("salle_id", salle.id)
     .order("created_at", { ascending: false })
 
   const { data: recentSoirees } = await supabase
     .from("sp_soirees")
     .select("*")
+    .eq("salle_id", salle.id)
     .order("created_at", { ascending: false })
     .limit(5)
 
