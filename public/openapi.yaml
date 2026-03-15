@@ -1,0 +1,756 @@
+openapi: 3.0.3
+info:
+  title: Pixel Night API
+  description: |
+    API interne de Pixel Night — application de soirées cinéma collaboratives.
+
+    Les endpoints de vote sont publics (pas d'authentification) ; les endpoints d'administration
+    requièrent une session Supabase valide (cookie `sb-*` posé par l'auth Next.js).
+
+    **Identifiant votant anonyme** : `voter_id` est un UUID généré côté client et stocké dans
+    le `localStorage` du navigateur. Il permet de garantir l'unicité du vote sans compte.
+  version: 1.0.0
+  contact:
+    url: https://github.com/Jagostini/pixel-night
+  license:
+    name: MIT + Commons Clause
+    url: https://github.com/Jagostini/pixel-night/blob/main/LICENSE
+
+servers:
+  - url: /api
+    description: Serveur courant
+
+tags:
+  - name: Votes
+    description: Actions anonymes des participants (vote thème, vote film, propositions)
+  - name: Administration
+    description: Actions réservées à l'organisateur authentifié
+  - name: TMDb
+    description: Intégration The Movie Database
+
+paths:
+  # ──────────────────────────────────────────────────────────────────
+  # VOTES (publics)
+  # ──────────────────────────────────────────────────────────────────
+
+  /soirees/{id}/vote-theme:
+    post:
+      tags: [Votes]
+      summary: Voter pour un thème
+      description: |
+        Enregistre le vote d'un participant anonyme pour un thème.
+        Un votant ne peut voter qu'une fois par soirée (contrôle par `voter_id`).
+      parameters:
+        - $ref: '#/components/parameters/SoireeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [soireeThemeId, voterId]
+              properties:
+                soireeThemeId:
+                  type: string
+                  format: uuid
+                  description: ID de l'entrée `sp_soiree_themes` choisie
+                voterId:
+                  type: string
+                  format: uuid
+                  description: Identifiant anonyme du votant (localStorage)
+      responses:
+        '200':
+          description: Vote enregistré
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessTrue'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Ce votant a déjà voté pour cette soirée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Vous avez deja vote
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /soirees/{id}/vote-film:
+    post:
+      tags: [Votes]
+      summary: Voter pour un film
+      description: |
+        Enregistre le vote d'un participant anonyme pour un film.
+        Un votant ne peut voter qu'une fois par soirée.
+      parameters:
+        - $ref: '#/components/parameters/SoireeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [soireeFilmId, voterId]
+              properties:
+                soireeFilmId:
+                  type: string
+                  format: uuid
+                  description: ID de l'entrée `sp_soiree_films` choisie
+                voterId:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Vote enregistré
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessTrue'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Ce votant a déjà voté
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /soirees/{id}/propose-film:
+    post:
+      tags: [Votes]
+      summary: Proposer un film
+      description: |
+        Soumet une proposition de film pendant la phase `film_proposal`.
+        Maximum 3 propositions par `voter_id`.
+      parameters:
+        - $ref: '#/components/parameters/SoireeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [voter_id, tmdb_id, title]
+              properties:
+                voter_id:
+                  type: string
+                  format: uuid
+                tmdb_id:
+                  type: integer
+                  description: ID TMDb du film
+                title:
+                  type: string
+                poster_path:
+                  type: string
+                  nullable: true
+                overview:
+                  type: string
+                  nullable: true
+                release_date:
+                  type: string
+                  format: date
+                  nullable: true
+                director:
+                  type: string
+                  nullable: true
+                duration:
+                  type: integer
+                  description: Durée en minutes
+                  nullable: true
+                trailer_url:
+                  type: string
+                  format: uri
+                  nullable: true
+      responses:
+        '200':
+          description: Proposition enregistrée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessTrue'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Limite de 3 propositions atteinte, ou film déjà proposé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /soirees/{id}/proposals:
+    get:
+      tags: [Votes]
+      summary: Lister les propositions de films
+      description: Retourne toutes les propositions de films pour une soirée.
+      parameters:
+        - $ref: '#/components/parameters/SoireeId'
+      responses:
+        '200':
+          description: Liste des propositions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  proposals:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FilmProposal'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ──────────────────────────────────────────────────────────────────
+  # ADMINISTRATION (auth requise)
+  # ──────────────────────────────────────────────────────────────────
+
+  /soirees/{id}/finalize-theme:
+    post:
+      tags: [Administration]
+      summary: Finaliser le vote de thème
+      description: |
+        Désigne le thème gagnant (en cas d'égalité, tirage au sort).
+        Si `proposal_enabled = true` sur la soirée, reste en `theme_vote` pour permettre
+        l'ouverture des propositions. Sinon, passe directement en `film_vote`.
+      security:
+        - SupabaseSession: []
+      parameters:
+        - $ref: '#/components/parameters/SoireeId'
+      responses:
+        '200':
+          description: Thème gagnant désigné
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  winning_theme_id:
+                    type: string
+                    format: uuid
+                  winning_theme_name:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /soirees/{id}/finalize-film:
+    post:
+      tags: [Administration]
+      summary: Finaliser le vote de film
+      description: |
+        Désigne le film gagnant (en cas d'égalité, tirage au sort).
+        Passe la soirée en phase `completed`.
+      security:
+        - SupabaseSession: []
+      parameters:
+        - $ref: '#/components/parameters/SoireeId'
+      responses:
+        '200':
+          description: Film gagnant désigné
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  winning_film_tmdb_id:
+                    type: integer
+                  winning_film_title:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /soirees/{id}/fetch-films:
+    post:
+      tags: [Administration]
+      summary: Récupérer les films depuis TMDb
+      description: |
+        Interroge TMDb avec les mots-clés du thème gagnant pour peupler `sp_soiree_films`.
+
+        **Algorithme** :
+        1. Queries : mots-clés individuels + combiné
+        2. Filtre : `vote_count >= 50`, `adult = false`
+        3. Score : `vote_average × log(vote_count + 1)`
+        4. Déduplique par `tmdb_id`, trie par score décroissant
+        5. Limite à `film_count × 2`
+        6. Enrichit chaque film (réalisateur, durée, bande-annonce YouTube)
+      security:
+        - SupabaseSession: []
+      parameters:
+        - $ref: '#/components/parameters/SoireeId'
+      responses:
+        '200':
+          description: Films insérés
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  count:
+                    type: integer
+        '400':
+          description: Pas de thème gagnant défini
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Aucun film trouvé sur TMDb
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /soirees/{id}/start-proposals:
+    post:
+      tags: [Administration]
+      summary: Ouvrir la phase de propositions de films
+      description: |
+        Passe la soirée en phase `film_proposal` et fixe la date de fin des propositions.
+        La durée est exprimée en minutes (convertie depuis le champ texte libre de l'UI
+        via `lib/duration.ts`).
+      security:
+        - SupabaseSession: []
+      parameters:
+        - $ref: '#/components/parameters/SoireeId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                proposal_duration_minutes:
+                  type: integer
+                  minimum: 1
+                  default: 60
+                  description: Durée de la phase de propositions en minutes
+      responses:
+        '200':
+          description: Phase de propositions ouverte
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  soiree:
+                    $ref: '#/components/schemas/Soiree'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /soirees/{id}/close-proposals:
+    post:
+      tags: [Administration]
+      summary: Clore la phase de propositions et passer en vote film
+      description: |
+        Copie les propositions dans `sp_soiree_films` et passe en `film_vote`.
+        Si aucune proposition n'existe, effectue un repli automatique sur TMDb.
+      security:
+        - SupabaseSession: []
+      parameters:
+        - $ref: '#/components/parameters/SoireeId'
+      responses:
+        '200':
+          description: Phase clôturée
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  count:
+                    type: integer
+                    description: Nombre de films insérés
+                  fallback:
+                    type: boolean
+                    description: True si repli automatique TMDb utilisé
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /soirees/{id}/cancel:
+    post:
+      tags: [Administration]
+      summary: Annuler une soirée
+      description: Passe la soirée en phase `cancelled`. Action irréversible.
+      security:
+        - SupabaseSession: []
+      parameters:
+        - $ref: '#/components/parameters/SoireeId'
+      responses:
+        '200':
+          description: Soirée annulée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessTrue'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Soirée introuvable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /soirees/{id}/delete:
+    delete:
+      tags: [Administration]
+      summary: Supprimer une soirée
+      description: |
+        Supprime définitivement la soirée et toutes ses données associées.
+        Seul l'organisateur propriétaire peut supprimer.
+      security:
+        - SupabaseSession: []
+      parameters:
+        - $ref: '#/components/parameters/SoireeId'
+      responses:
+        '200':
+          description: Soirée supprimée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessTrue'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ──────────────────────────────────────────────────────────────────
+  # TMDb
+  # ──────────────────────────────────────────────────────────────────
+
+  /tmdb/search:
+    get:
+      tags: [TMDb]
+      summary: Rechercher des films sur TMDb
+      description: |
+        Proxy vers `GET /search/movie` de TMDb. Résultats en français (`fr-FR`).
+        Le token TMDb est résolu côté serveur (env var ou DB chiffrée).
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Terme de recherche
+          example: western
+      responses:
+        '200':
+          description: Résultats de recherche
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TmdbMovie'
+                  total_results:
+                    type: integer
+        '400':
+          description: Paramètre `query` manquant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Token TMDb non configuré
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: Échec de la requête TMDb
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /tmdb/movie/{tmdbId}:
+    get:
+      tags: [TMDb]
+      summary: Détails d'un film TMDb
+      description: Retourne les détails complets d'un film (réalisateur, durée, bande-annonce).
+      parameters:
+        - name: tmdbId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID TMDb du film
+      responses:
+        '200':
+          description: Détails du film
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmdbMovieDetail'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /tmdb/status:
+    get:
+      tags: [TMDb]
+      summary: Statut de la configuration TMDb
+      description: |
+        Indique si un token TMDb est disponible et quelle est sa source
+        (`env` ou `database`).
+      responses:
+        '200':
+          description: Statut
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  configured:
+                    type: boolean
+                  source:
+                    type: string
+                    enum: [env, database, none]
+
+  /tmdb/save-token:
+    post:
+      tags: [TMDb]
+      summary: Sauvegarder le token TMDb (chiffré)
+      description: |
+        Valide le token auprès de TMDb, le chiffre avec AES-256-GCM (`ENCRYPTION_KEY`)
+        et le stocke dans `sp_salles.tmdb_token_encrypted`.
+      security:
+        - SupabaseSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  type: string
+                  description: API Read Access Token TMDb
+      responses:
+        '200':
+          description: Token sauvegardé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessTrue'
+        '400':
+          description: Token invalide ou manquant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          description: ENCRYPTION_KEY non configurée ou erreur DB
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+# ──────────────────────────────────────────────────────────────────
+# COMPONENTS
+# ──────────────────────────────────────────────────────────────────
+
+components:
+  securitySchemes:
+    SupabaseSession:
+      type: apiKey
+      in: cookie
+      name: sb-access-token
+      description: Cookie de session Supabase posé automatiquement après connexion
+
+  parameters:
+    SoireeId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: UUID de la soirée
+
+  responses:
+    BadRequest:
+      description: Paramètres manquants ou incorrects
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Session non authentifiée
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Non autorise
+    InternalError:
+      description: Erreur serveur interne
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    SuccessTrue:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+
+    Soiree:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        phase:
+          type: string
+          enum: [planned, theme_vote, film_proposal, film_vote, completed, cancelled]
+        event_date:
+          type: string
+          format: date
+          nullable: true
+        theme_count:
+          type: integer
+        film_count:
+          type: integer
+        proposal_enabled:
+          type: boolean
+        proposal_ends_at:
+          type: string
+          format: date-time
+          nullable: true
+        winning_theme_id:
+          type: string
+          format: uuid
+          nullable: true
+        winning_film_title:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    FilmProposal:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        soiree_id:
+          type: string
+          format: uuid
+        voter_id:
+          type: string
+          format: uuid
+        tmdb_id:
+          type: integer
+        title:
+          type: string
+        poster_path:
+          type: string
+          nullable: true
+        overview:
+          type: string
+          nullable: true
+        release_date:
+          type: string
+          format: date
+          nullable: true
+        director:
+          type: string
+          nullable: true
+        duration:
+          type: integer
+          nullable: true
+        trailer_url:
+          type: string
+          format: uri
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    TmdbMovie:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        poster_path:
+          type: string
+          nullable: true
+        overview:
+          type: string
+        release_date:
+          type: string
+          format: date
+        vote_average:
+          type: number
+          format: float
+        vote_count:
+          type: integer
+
+    TmdbMovieDetail:
+      allOf:
+        - $ref: '#/components/schemas/TmdbMovie'
+        - type: object
+          properties:
+            runtime:
+              type: integer
+              description: Durée en minutes
+            director:
+              type: string
+              nullable: true
+            trailer_url:
+              type: string
+              format: uri
+              nullable: true
