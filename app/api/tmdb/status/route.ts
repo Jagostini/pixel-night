@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
+import { getActiveTmdbToken } from "@/lib/tmdb-token"
 
 export async function GET() {
-  const token = process.env.TMDB_API_READ_ACCESS_TOKEN
+  const token = await getActiveTmdbToken()
   if (!token) {
     return NextResponse.json({ configured: false })
   }

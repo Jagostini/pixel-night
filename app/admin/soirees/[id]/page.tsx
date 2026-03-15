@@ -42,6 +42,8 @@ import {
   XCircle,
   Trash2,
 } from "lucide-react"
+import { parseDurationToMinutes, formatDurationFromMinutes } from "@/lib/duration"
+import { Input } from "@/components/ui/input"
 import Link from "next/link"
 
 type SoireeThemeWithJoin = SpSoireeTheme & { theme: SpTheme }
@@ -56,6 +58,7 @@ export default function SoireeControlPage() {
   const [proposals, setProposals] = useState<Array<{ id: string; tmdb_id: number; title: string; poster_path: string | null; voter_id: string }>>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [proposalDurationInput, setProposalDurationInput] = useState("1h")
 
   const loadData = useCallback(async () => {
     const supabase = createClient()
@@ -116,16 +119,17 @@ export default function SoireeControlPage() {
   }
 
   async function handleStartProposals() {
+    const durationMinutes = parseDurationToMinutes(proposalDurationInput) ?? 60
     setActionLoading("start-proposals")
     try {
       const res = await fetch(`/api/soirees/${id}/start-proposals`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ proposal_duration_minutes: 60 }),
+        body: JSON.stringify({ proposal_duration_minutes: durationMinutes }),
       })
       const json = await res.json()
       if (!res.ok) { toast.error(json.error); return }
-      toast.success("Phase de propositions ouverte !")
+      toast.success(`Phase de propositions ouverte (${formatDurationFromMinutes(durationMinutes)}) !`)
       loadData()
     } finally { setActionLoading(null) }
   }
@@ -329,20 +333,41 @@ export default function SoireeControlPage() {
               </Button>
             )}
             {phase === "theme_vote" && soiree.proposal_enabled && soiree.winning_theme_id && (
-              <Button
-                variant="outline"
-                onClick={handleStartProposals}
-                disabled={!!actionLoading}
-              >
-                {actionLoading === "start-proposals" ? (
-                  "Ouverture..."
-                ) : (
-                  <>
-                    <Lightbulb className="mr-1 h-4 w-4" />
-                    Ouvrir les propositions
-                  </>
-                )}
-              </Button>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <Input
+                    className="w-36 h-9 text-sm"
+                    placeholder="ex: 2 jours, 1h30"
+                    value={proposalDurationInput}
+                    onChange={(e) => setProposalDurationInput(e.target.value)}
+                    disabled={!!actionLoading}
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={handleStartProposals}
+                    disabled={!!actionLoading || !parseDurationToMinutes(proposalDurationInput)}
+                  >
+                    {actionLoading === "start-proposals" ? (
+                      "Ouverture..."
+                    ) : (
+                      <>
+                        <Lightbulb className="mr-1 h-4 w-4" />
+                        Ouvrir les propositions
+                      </>
+                    )}
+                  </Button>
+                </div>
+                {(() => {
+                  const mins = parseDurationToMinutes(proposalDurationInput)
+                  return mins ? (
+                    <span className="text-xs text-muted-foreground ml-1">
+                      Durée : {formatDurationFromMinutes(mins)}
+                    </span>
+                  ) : proposalDurationInput.trim() ? (
+                    <span className="text-xs text-destructive ml-1">Format non reconnu</span>
+                  ) : null
+                })()}
+              </div>
             )}
             {phase === "film_proposal" && (
               <Button onClick={handleCloseProposals} disabled={!!actionLoading}>

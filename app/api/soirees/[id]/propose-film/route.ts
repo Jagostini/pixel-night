@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { TMDB_BASE_URL, tmdbHeaders } from "@/lib/tmdb"
+import { getActiveTmdbToken } from "@/lib/tmdb-token"
 
 const MAX_PROPOSALS_PER_VOTER = 3
 
@@ -85,9 +86,14 @@ export async function POST(
     trailer_url: string | null
   }
 
+  const token = await getActiveTmdbToken()
+  if (!token) {
+    return NextResponse.json({ error: "Token TMDb non configuré" }, { status: 500 })
+  }
+
   try {
     const detailUrl = `${TMDB_BASE_URL}/movie/${tmdb_id}?language=fr-FR&append_to_response=credits,videos`
-    const res = await fetch(detailUrl, { headers: tmdbHeaders() })
+    const res = await fetch(detailUrl, { headers: tmdbHeaders(token) })
     if (!res.ok) {
       return NextResponse.json({ error: "Film non trouve sur TMDb" }, { status: 400 })
     }

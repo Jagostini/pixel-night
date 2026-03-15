@@ -226,16 +226,18 @@ export default function NouvelleSoireePage() {
               {proposalEnabled && (
                 <div className="flex flex-col gap-2 ml-6">
                   <Label htmlFor="proposal-duration">
-                    Duree des propositions (minutes)
+                    Durée des propositions
                   </Label>
                   <Input
                     id="proposal-duration"
-                    type="number"
-                    min={1}
+                    type="text"
                     value={proposalDuration}
                     onChange={(e) => setProposalDuration(e.target.value)}
-                    placeholder="ex: 60"
+                    placeholder="ex: 2 jours, 1h30, 30min"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Modifiable lors du lancement des propositions
+                  </p>
                 </div>
               )}
             </div>

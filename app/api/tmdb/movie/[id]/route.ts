@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { TMDB_BASE_URL, tmdbHeaders } from "@/lib/tmdb"
+import { getActiveTmdbToken } from "@/lib/tmdb-token"
 
 export async function GET(
   _request: NextRequest,
@@ -7,17 +8,17 @@ export async function GET(
 ) {
   const { id } = await params
 
-  const token = process.env.TMDB_API_READ_ACCESS_TOKEN
+  const token = await getActiveTmdbToken()
   if (!token) {
     return NextResponse.json(
-      { error: "TMDB_API_READ_ACCESS_TOKEN not configured" },
+      { error: "Token TMDb non configuré" },
       { status: 500 }
     )
   }
 
   try {
     const url = `${TMDB_BASE_URL}/movie/${id}?language=fr-FR&append_to_response=credits,videos`
-    const res = await fetch(url, { headers: tmdbHeaders() })
+    const res = await fetch(url, { headers: tmdbHeaders(token) })
 
     if (!res.ok) {
       return NextResponse.json({ error: "Movie not found" }, { status: 404 })
