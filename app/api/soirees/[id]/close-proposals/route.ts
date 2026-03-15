@@ -160,7 +160,7 @@ export async function POST(
   // Transition to film_vote
   const { error } = await supabase
     .from("sp_soirees")
-    .update({ phase: "film_vote" })
+    .update({ phase: "film_vote", proposal_enabled: false })
     .eq("id", soireeId)
 
   if (error) {

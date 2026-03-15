@@ -17,3 +17,8 @@ ALTER TABLE sp_themes ADD COLUMN salle_id UUID REFERENCES sp_salles(id) ON DELET
 -- 3. Index pour les performances
 CREATE INDEX idx_soirees_salle_id ON sp_soirees(salle_id);
 CREATE INDEX idx_themes_salle_id ON sp_themes(salle_id);
+
+-- 4. Grants (requis pour que PostgREST inclue la table dans son schema cache)
+GRANT SELECT ON public.sp_salles TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.sp_salles TO authenticated;
+GRANT ALL ON public.sp_salles TO service_role;
