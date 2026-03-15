@@ -1,0 +1,40 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 5
+    groups:
+      shadcn-ui:
+        patterns:
+          - "@radix-ui/*"
+      supabase:
+        patterns:
+          - "@supabase/*"
+      next:
+        patterns:
+          - "next"
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      dev-tooling:
+        dependency-type: "development"
+        patterns:
+          - "typescript"
+          - "eslint*"
+          - "@typescript-eslint/*"
+          - "vitest"
+          - "@vitejs/*"
+    ignore:
+      - dependency-name: "eslint"
+        versions: ["10.x"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
