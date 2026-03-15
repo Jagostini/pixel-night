@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
+import { describe, it, expect } from "vitest"
 import { tmdbPoster, tmdbBackdrop, tmdbHeaders } from "@/lib/tmdb"
 
 describe("tmdbPoster", () => {
@@ -40,17 +40,19 @@ describe("tmdbBackdrop", () => {
 })
 
 describe("tmdbHeaders", () => {
-  beforeEach(() => {
-    vi.stubEnv("TMDB_API_READ_ACCESS_TOKEN", "test-token-123")
-  })
-
-  it("includes Authorization bearer token", () => {
-    const headers = tmdbHeaders() as Record<string, string>
-    expect(headers["Authorization"]).toBe("Bearer test-token-123")
+  it("includes Authorization bearer token from the given token", () => {
+    const headers = tmdbHeaders("my-token-xyz") as Record<string, string>
+    expect(headers["Authorization"]).toBe("Bearer my-token-xyz")
   })
 
   it("includes Content-Type header", () => {
-    const headers = tmdbHeaders() as Record<string, string>
+    const headers = tmdbHeaders("any-token") as Record<string, string>
     expect(headers["Content-Type"]).toBe("application/json;charset=utf-8")
+  })
+
+  it("uses the exact token passed, without modification", () => {
+    const token = "eyJhbGciOiJIUzI1NiJ9.some.payload"
+    const headers = tmdbHeaders(token) as Record<string, string>
+    expect(headers["Authorization"]).toBe(`Bearer ${token}`)
   })
 })

@@ -19,6 +19,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { TMDB_BASE_URL, tmdbHeaders } from "@/lib/tmdb"
+import { getActiveTmdbToken } from "@/lib/tmdb-token"
 
 interface TmdbSearchResult {
   id: number
@@ -45,10 +46,10 @@ export async function POST(
 
   const supabase = createAdminClient()
 
-  const token = process.env.TMDB_API_READ_ACCESS_TOKEN
+  const token = await getActiveTmdbToken(user.id)
   if (!token) {
     return NextResponse.json(
-      { error: "TMDB_API_READ_ACCESS_TOKEN non configure" },
+      { error: "Token TMDb non configuré" },
       { status: 500 }
     )
   }
@@ -83,7 +84,7 @@ export async function POST(
   for (const query of queries) {
     try {
       const url = `${TMDB_BASE_URL}/search/movie?query=${encodeURIComponent(query)}&language=fr-FR&page=1&include_adult=false`
-      const res = await fetch(url, { headers: tmdbHeaders() })
+      const res = await fetch(url, { headers: tmdbHeaders(token) })
       const data = await res.json()
 
       for (const movie of (data.results ?? []) as TmdbSearchResult[]) {
@@ -118,7 +119,7 @@ export async function POST(
     selectedMovies.map(async (movie) => {
       try {
         const detailUrl = `${TMDB_BASE_URL}/movie/${movie.id}?language=fr-FR&append_to_response=credits,videos`
-        const detailRes = await fetch(detailUrl, { headers: tmdbHeaders() })
+        const detailRes = await fetch(detailUrl, { headers: tmdbHeaders(token) })
         const detail = await detailRes.json()
 
         const director = detail.credits?.crew?.find(

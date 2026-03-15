@@ -42,6 +42,8 @@ export function FilmProposalSearch({
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<TmdbSearchResult[]>([])
   const [searching, setSearching] = useState(false)
+  const [searchError, setSearchError] = useState(false)
+  const [searchDone, setSearchDone] = useState(false)
   const [proposals, setProposals] = useState<SpSoireeFilmProposal[]>([])
   const [myProposalIds, setMyProposalIds] = useState<Set<number>>(new Set())
   const [submitting, setSubmitting] = useState<number | null>(null)
@@ -69,11 +71,15 @@ export function FilmProposalSearch({
 
     if (!query.trim() || query.trim().length < 2) {
       setResults([])
+      setSearchDone(false)
+      setSearchError(false)
       return
     }
 
     debounceRef.current = setTimeout(async () => {
       setSearching(true)
+      setSearchError(false)
+      setSearchDone(false)
       try {
         const res = await fetch(
           `/api/tmdb/search?query=${encodeURIComponent(query.trim())}`
@@ -81,11 +87,16 @@ export function FilmProposalSearch({
         if (res.ok) {
           const data = await res.json()
           setResults(data.results?.slice(0, 8) ?? [])
+        } else {
+          setResults([])
+          setSearchError(true)
         }
       } catch {
-        // ignore search errors
+        setResults([])
+        setSearchError(true)
       } finally {
         setSearching(false)
+        setSearchDone(true)
       }
     }, 500)
 
@@ -153,6 +164,18 @@ export function FilmProposalSearch({
               <Skeleton key={i} className="h-16" />
             ))}
           </div>
+        )}
+
+        {!searching && searchError && (
+          <p className="text-sm text-destructive">
+            Erreur lors de la recherche. Veuillez réessayer.
+          </p>
+        )}
+
+        {!searching && !searchError && searchDone && results.length === 0 && query.trim().length >= 2 && (
+          <p className="text-sm text-muted-foreground">
+            Aucun résultat pour &quot;{query.trim()}&quot;.
+          </p>
         )}
 
         {!searching && results.length > 0 && (

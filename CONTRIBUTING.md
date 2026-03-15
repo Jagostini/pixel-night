@@ -46,16 +46,21 @@ cd pixel-night
 ### 2. Installer les dépendances
 
 ```bash
-npm install
+pnpm install
 ```
 
 ### 3. Configurer Supabase
 
 1. Créez un nouveau projet sur [supabase.com](https://supabase.com)
 2. Dans le SQL Editor de Supabase, exécutez les scripts dans l'ordre suivant :
-   - `scripts/001_sp_create_tables.sql` — Crée toutes les tables
+   - `scripts/001_sp_create_tables.sql` — Crée toutes les tables de base
    - `scripts/002_sp_rls_policies.sql` — Configure les politiques de sécurité (RLS)
    - `scripts/003_sp_profile_trigger.sql` — Configure le trigger de profil auto
+   - `scripts/004_sp_add_projection_proposals.sql` — Propositions de films + champ durée
+   - `scripts/005_sp_add_cancelled_phase.sql` — Phase « annulée »
+   - `scripts/005_sp_add_tmdb_token.sql` — Colonne token TMDb chiffré dans `sp_salles`
+   - `scripts/006_sp_add_salles.sql` — Table `sp_salles`
+   - `scripts/007_sp_grants_salles.sql` — Grants pour les nouvelles tables
 
 ### 4. Configurer TMDb
 
@@ -75,7 +80,7 @@ Renseignez ensuite les valeurs dans `.env.local` (voir la section [Variables d'e
 ### 6. Lancer le serveur de développement
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 L'application est disponible sur [http://localhost:3000](http://localhost:3000).
@@ -93,23 +98,29 @@ pixel-night/
 ├── app/                    # Pages et routes (Next.js App Router)
 │   ├── admin/              # Interface organisateur (authentifiée)
 │   │   ├── soirees/        # Gestion des soirées
+│   │   ├── salles/         # Gestion des salles de cinéma
 │   │   ├── themes/         # Gestion des thèmes
-│   │   └── parametres/     # Configuration TMDb
+│   │   └── parametres/     # Configuration du token TMDb
 │   ├── api/                # Routes API
-│   │   ├── soirees/[id]/   # Vote, finalisation, récupération de films
-│   │   └── tmdb/           # Proxy pour l'API TMDb
+│   │   ├── soirees/[id]/   # Vote, finalisation, propositions, récupération de films
+│   │   └── tmdb/           # Proxy, sauvegarde et statut du token TMDb
 │   ├── auth/               # Pages de connexion/inscription
 │   └── soiree/[id]/        # Pages publiques de vote et résultats
 ├── components/
 │   ├── ui/                 # Composants Shadcn UI (ne pas modifier directement)
 │   └── *.tsx               # Composants métier de l'application
 ├── lib/
-│   ├── supabase/           # Clients Supabase (server, client, admin, middleware)
+│   ├── supabase/           # Clients Supabase (server, client, admin)
 │   ├── types.ts            # Types TypeScript partagés
-│   ├── tmdb.ts             # Utilitaires pour l'API TMDb
+│   ├── tmdb.ts             # Utilitaires TMDb (URLs d'images, headers)
+│   ├── tmdb-token.ts       # Résolution du token actif (env var ou DB chiffré)
+│   ├── encryption.ts       # Chiffrement AES-256-GCM via Web Crypto API
+│   ├── duration.ts         # Parseur durée texte → minutes
 │   └── voter.ts            # Gestion de l'ID votant anonyme (localStorage)
+├── __tests__/              # Tests unitaires (Vitest)
 ├── scripts/                # Scripts SQL pour initialiser la base de données
-└── hooks/                  # Hooks React personnalisés
+├── hooks/                  # Hooks React personnalisés
+└── proxy.ts                # Proxy Next.js (gestion de session Supabase SSR)
 ```
 
 ### Flux de données
@@ -121,11 +132,14 @@ Participant anonyme           Organisateur (authentifié)
 /soiree/[id]              /admin/soirees/[id]
        │                               │
        ├── Vote thème ──► POST /api/soirees/[id]/vote-theme
+       ├── Proposition ──► POST /api/soirees/[id]/propose-film
        ├── Vote film  ──► POST /api/soirees/[id]/vote-film
        │                               │
-       │                    ├── Finaliser thème ──► POST /api/.../finalize-theme
-       │                    ├── Récupérer films ──► POST /api/.../fetch-films ──► TMDb
-       │                    └── Finaliser film  ──► POST /api/.../finalize-film
+       │                    ├── Finaliser thème  ──► POST /api/.../finalize-theme
+       │                    ├── Lancer propositions ► POST /api/.../start-proposals
+       │                    ├── Clore propositions  ► POST /api/.../close-proposals ──► TMDb (si repli)
+       │                    ├── Récupérer films    ──► POST /api/.../fetch-films ──► TMDb
+       │                    └── Finaliser film     ──► POST /api/.../finalize-film
        │
        └── Résultats ──► /soiree/[id]/resultats
 ```
@@ -133,13 +147,17 @@ Participant anonyme           Organisateur (authentifié)
 ### Phases d'une soirée
 
 ```
-planned ──► theme_vote ──► film_vote ──► completed
+planned ──► theme_vote ──► [film_proposal] ──► film_vote ──► completed
+                                                                  │
+                              cancelled ◄───────────────────────(any)
 ```
 
 - **planned** : La soirée est créée mais les votes ne sont pas encore ouverts
 - **theme_vote** : Les participants votent pour leur thème préféré
-- **film_vote** : Le thème gagnant est sélectionné, les films sont récupérés depuis TMDb, les participants votent pour un film
-- **completed** : Le film gagnant est sélectionné, la soirée est terminée
+- **film_proposal** *(optionnel)* : Les participants proposent des films (max 3 par votant) pendant une durée libre (ex : « 2 jours », « 1h30 »). Si aucune proposition, TMDb est utilisé en repli automatique.
+- **film_vote** : Les films sont soumis au vote
+- **completed** : Le film gagnant est annoncé
+- **cancelled** : La soirée a été annulée par l'organisateur
 
 ---
 
@@ -213,24 +231,42 @@ Toutes les tables sont préfixées `sp_` (Soirée Pixelisée).
 | `sp_themes` | Catalogue des thèmes disponibles |
 | `sp_soirees` | Les soirées (événements) |
 | `sp_soiree_themes` | Thèmes proposés pour chaque soirée |
-| `sp_soiree_films` | Films récupérés depuis TMDb pour chaque soirée |
+| `sp_soiree_films` | Films en lice pour le vote de film |
+| `sp_soiree_film_proposals` | Propositions de films par les participants |
 | `sp_theme_votes` | Votes de thème des participants |
 | `sp_film_votes` | Votes de film des participants |
+| `sp_salles` | Salles de cinéma (contient le token TMDb chiffré) |
 
 Les scripts SQL sont dans `scripts/` et doivent être exécutés dans l'ordre numérique.
 
-Si vous ajoutez ou modifiez des tables, créez un nouveau script SQL numéroté (ex: `004_sp_...sql`) avec les instructions `ALTER TABLE` ou `CREATE TABLE` nécessaires.
+Si vous ajoutez ou modifiez des tables, créez un nouveau script SQL numéroté (ex: `008_sp_...sql`) avec les instructions `ALTER TABLE` ou `CREATE TABLE` nécessaires.
 
 ---
 
 ## Variables d'environnement
 
-| Variable | Description | Où la trouver |
-|----------|-------------|---------------|
-| `NEXT_PUBLIC_SUPABASE_URL` | URL de votre projet Supabase | Dashboard Supabase → Settings → API |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Clé publique Supabase | Dashboard Supabase → Settings → API |
-| `SUPABASE_SERVICE_ROLE_KEY` | Clé de service (accès admin, **ne jamais exposer côté client**) | Dashboard Supabase → Settings → API |
-| `TMDB_API_READ_ACCESS_TOKEN` | Token d'accès en lecture TMDb | themoviedb.org → Settings → API |
+| Variable | Obligatoire | Description | Où la trouver |
+|----------|-------------|-------------|---------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | ✅ | URL de votre projet Supabase | Dashboard Supabase → Settings → API |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | Clé publique Supabase | Dashboard Supabase → Settings → API |
+| `SUPABASE_SERVICE_ROLE_KEY` | ✅ | Clé de service (**ne jamais exposer côté client**) | Dashboard Supabase → Settings → API |
+| `TMDB_API_READ_ACCESS_TOKEN` | ⚡ | Token TMDb en clair (prioritaire sur la DB) | themoviedb.org → Settings → API |
+| `ENCRYPTION_KEY` | ⚡ | Clé AES-256 en hex (64 chars) pour chiffrer le token TMDb en DB | `openssl rand -hex 32` |
+
+> ⚡ Au moins une des deux options TMDb doit être configurée. En production, préférez stocker le token chiffré en base et ne définir que `ENCRYPTION_KEY` dans Vercel. Le token est alors saisi dans l'interface admin sous **Paramètres**.
+
+### Tests
+
+```bash
+pnpm test
+```
+
+Les tests unitaires couvrent :
+- `lib/tmdb.ts` — helpers d'URL et headers
+- `lib/duration.ts` — parseur durée texte ↔ minutes
+- `lib/encryption.ts` — chiffrement / déchiffrement AES-256-GCM
+- `lib/tmdb-token.ts` — résolution du token actif (env var vs DB)
+- API `finalize-theme` / `finalize-film` — logique de départage
 
 ---
 

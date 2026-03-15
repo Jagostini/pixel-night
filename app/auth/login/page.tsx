@@ -1,8 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { toast } from "sonner"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,7 +15,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -31,14 +30,14 @@ export default function LoginPage() {
         setLoading(false)
         return
       }
-    } catch (err) {
+    } catch {
       setError("Service indisponible. Verifiez la configuration Supabase.")
       setLoading(false)
       return
     }
 
-    router.push("/admin")
-    router.refresh()
+    toast.success("Connexion réussie !")
+    window.location.assign("/admin")
   }
 
   return (

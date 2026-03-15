@@ -28,14 +28,14 @@ export function tmdbBackdrop(path: string | null, size: "w780" | "w1280" | "orig
 }
 
 /**
- * Build TMDb API headers with the bearer token from env.
- * Must only be called server-side (TMDB_API_READ_ACCESS_TOKEN is a server env var).
+ * Build TMDb API headers for a given bearer token.
  *
+ * @param token - The TMDb Read Access Token (from env or DB)
  * @returns HeadersInit object with Authorization and Content-Type
  */
-export function tmdbHeaders(): HeadersInit {
+export function tmdbHeaders(token: string): HeadersInit {
   return {
-    Authorization: `Bearer ${process.env.TMDB_API_READ_ACCESS_TOKEN}`,
+    Authorization: `Bearer ${token}`,
     "Content-Type": "application/json;charset=utf-8",
   };
 }

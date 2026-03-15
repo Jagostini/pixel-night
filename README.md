@@ -6,12 +6,16 @@ Application web de soirées cinéma collaboratives. Les participants votent ense
 
 ## Fonctionnement
 
-Une soirée se déroule en deux phases :
+Une soirée se déroule en plusieurs phases :
 
 1. **Vote thème** — chaque participant vote pour son thème préféré parmi une sélection aléatoire
-2. **Vote film** — le thème gagnant est utilisé pour chercher des films sur TMDb, les participants votent pour leur film préféré
+2. **Propositions de films** *(optionnel)* — si activé, les participants peuvent proposer jusqu'à 3 films sur le thème gagnant pendant une durée définie par l'organisateur (ex : « 2 jours », « 1h30 »)
+3. **Vote film** — les films proposés (ou récupérés automatiquement depuis TMDb) sont soumis au vote
+4. **Terminée** — le film gagnant est annoncé
 
 Les participants n'ont pas besoin de compte. Un identifiant anonyme est stocké dans leur navigateur pour garantir l'unicité du vote.
+
+L'organisateur peut également **annuler** une soirée à tout moment.
 
 ## Stack technique
 
@@ -33,16 +37,21 @@ npm install
 
 # 2. Configurer les variables d'environnement
 cp .env.example .env.local
-# Remplir .env.local avec vos clés Supabase et TMDb
+# Remplir .env.local avec vos clés Supabase et TMDb (voir section Variables d'environnement)
 
 # 3. Initialiser la base de données
 # Exécuter dans l'ordre dans le SQL Editor de Supabase :
 # scripts/001_sp_create_tables.sql
 # scripts/002_sp_rls_policies.sql
 # scripts/003_sp_profile_trigger.sql
+# scripts/004_sp_add_projection_proposals.sql
+# scripts/005_sp_add_cancelled_phase.sql
+# scripts/005_sp_add_tmdb_token.sql
+# scripts/006_sp_add_salles.sql
+# scripts/007_sp_grants_salles.sql
 
 # 4. Lancer
-npm run dev
+pnpm dev
 ```
 
 L'application est disponible sur [http://localhost:3000](http://localhost:3000).
@@ -53,27 +62,53 @@ L'application est disponible sur [http://localhost:3000](http://localhost:3000).
 app/
 ├── admin/          # Tableau de bord organisateur (auth requise)
 │   ├── soirees/    # Créer et gérer les soirées
+│   ├── salles/     # Gérer les salles de cinéma
 │   ├── themes/     # Gérer le catalogue de thèmes
-│   └── parametres/ # Configuration TMDb
-├── api/            # Routes API (votes, finalisation, TMDb)
+│   └── parametres/ # Configuration TMDb (token chiffré)
+├── api/            # Routes API (votes, finalisation, TMDb, propositions)
 ├── auth/           # Connexion / inscription
 └── soiree/[id]/    # Pages publiques de vote et résultats
 
 components/         # Composants React
-lib/                # Utilitaires, clients Supabase, types
-scripts/            # Scripts SQL d'initialisation
+lib/
+├── supabase/       # Clients Supabase (server, client, admin)
+├── types.ts        # Types TypeScript partagés (SoireePhase, etc.)
+├── tmdb.ts         # Utilitaires TMDb (URLs, headers)
+├── tmdb-token.ts   # Résolution du token TMDb (env var ou DB chiffré)
+├── encryption.ts   # Chiffrement AES-256-GCM (Web Crypto API)
+├── duration.ts     # Parseur durée texte → minutes (« 2 jours », « 1h30 »)
+└── voter.ts        # Identifiant votant anonyme (localStorage)
+scripts/            # Scripts SQL d'initialisation (à exécuter dans l'ordre)
+__tests__/          # Tests unitaires (Vitest)
 ```
 
 ## Variables d'environnement
 
 ```bash
+# Supabase (obligatoires)
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+
+# TMDb — au moins une des deux options :
+# Option A : token en clair dans l'env (développement / déploiement simple)
 TMDB_API_READ_ACCESS_TOKEN=
+
+# Option B : token chiffré en base (recommandé en production)
+# Clé 32 octets en hexadécimal (64 caractères) — générer avec : openssl rand -hex 32
+ENCRYPTION_KEY=
 ```
 
-Voir `.env.example` pour les détails.
+Si `TMDB_API_READ_ACCESS_TOKEN` est défini, il est utilisé en priorité.
+Sinon, le token est lu depuis `sp_salles.tmdb_token_encrypted` et déchiffré avec `ENCRYPTION_KEY`.
+
+## Tests
+
+```bash
+pnpm test
+```
+
+Les tests couvrent : utilitaires TMDb, parseur de durée, chiffrement AES-256-GCM, résolution du token, logique de départage des votes.
 
 ## Contribuer
 

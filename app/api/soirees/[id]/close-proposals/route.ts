@@ -16,6 +16,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { TMDB_BASE_URL, tmdbHeaders } from "@/lib/tmdb"
+import { getActiveTmdbToken } from "@/lib/tmdb-token"
 
 export async function POST(
   _request: NextRequest,
@@ -88,6 +89,11 @@ export async function POST(
         .eq("id", soiree.winning_theme_id)
         .single()
 
+      const tmdbToken = await getActiveTmdbToken(user.id)
+      if (!tmdbToken) {
+        return NextResponse.json({ error: "Token TMDb non configuré" }, { status: 500 })
+      }
+
       const keywords: string[] = theme?.keywords?.length ? theme.keywords : [theme?.name ?? "film"]
       const queries = [...keywords]
       if (keywords.length > 1) queries.push(keywords.join(" "))
@@ -97,7 +103,7 @@ export async function POST(
       for (const query of queries) {
         try {
           const url = `${TMDB_BASE_URL}/search/movie?query=${encodeURIComponent(query)}&language=fr-FR&page=1&include_adult=false`
-          const res = await fetch(url, { headers: tmdbHeaders() })
+          const res = await fetch(url, { headers: tmdbHeaders(tmdbToken) })
           const data = await res.json()
           for (const movie of data.results ?? []) {
             if (movie.adult || movie.vote_count < 50) continue
@@ -119,7 +125,7 @@ export async function POST(
         selectedMovies.map(async (movie) => {
           try {
             const detailUrl = `${TMDB_BASE_URL}/movie/${movie.id}?language=fr-FR&append_to_response=credits,videos`
-            const detailRes = await fetch(detailUrl, { headers: tmdbHeaders() })
+            const detailRes = await fetch(detailUrl, { headers: tmdbHeaders(tmdbToken) })
             const detail = await detailRes.json()
             const director = detail.credits?.crew?.find((c: { job: string }) => c.job === "Director")?.name ?? null
             const trailer = detail.videos?.results?.find((v: { type: string; site: string; key: string }) => v.type === "Trailer" && v.site === "YouTube")
