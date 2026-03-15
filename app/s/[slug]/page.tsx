@@ -15,6 +15,7 @@ import {
   Calendar,
   Clock,
 } from "lucide-react"
+import { tmdbPoster } from "@/lib/tmdb"
 import type { SpSoiree, SoireePhase } from "@/lib/types"
 
 interface SoireeWithCounts extends SpSoiree {
@@ -255,7 +256,7 @@ function SoireePastCard({ soiree }: { soiree: SoireeWithCounts }) {
               <div className="h-20 w-14 shrink-0 overflow-hidden rounded-md bg-secondary">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={`https://image.tmdb.org/t/p/w154${soiree.winning_film_poster}`}
+                  src={tmdbPoster(soiree.winning_film_poster, "w342")}
                   alt={soiree.winning_film_title}
                   className="h-full w-full object-cover"
                   loading="lazy"

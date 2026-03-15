@@ -34,6 +34,9 @@ export async function POST(
   })
 
   if (voteError) {
+    if (voteError.code === "23505") {
+      return NextResponse.json({ error: "Vous avez deja vote" }, { status: 409 })
+    }
     return NextResponse.json({ error: voteError.message }, { status: 500 })
   }
 
