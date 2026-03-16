@@ -14,6 +14,9 @@
 /build
 /dist
 
+# generated assets (rebuilt by prebuild)
+/public/redoc.standalone.js
+
 # debug
 npm-debug.log*
 yarn-debug.log*

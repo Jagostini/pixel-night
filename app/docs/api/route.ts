@@ -11,7 +11,7 @@ export async function GET() {
 </head>
 <body>
   <redoc spec-url="/openapi.yaml" hide-download-button></redoc>
-  <script src="https://cdn.jsdelivr.net/npm/redoc@latest/bundles/redoc.standalone.js"></script>
+  <script src="/redoc.standalone.js"></script>
 </body>
 </html>`
 

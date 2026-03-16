@@ -1,6 +1,6 @@
 import Script from "next/script"
 import Link from "next/link"
-import { Film, Github, Map, BookOpen, Heart } from "lucide-react"
+import { Film, Github, Map, BookOpen, FileCode2, Heart } from "lucide-react"
 
 const GITHUB_URL = "https://github.com/Jagostini/pixel-night"
 
@@ -31,17 +31,15 @@ export function SiteFooter() {
             className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
           >
             <BookOpen className="h-3 w-3" />
-            Documentation API
+            Documentation
           </Link>
-          <a
-            href={`${GITHUB_URL}#readme`}
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href="/docs/api"
             className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
           >
-            <BookOpen className="h-3 w-3" />
-            Documentation
-          </a>
+            <FileCode2 className="h-3 w-3" />
+            Documentation API
+          </Link>
           <a
             href={`${GITHUB_URL}/blob/main/CONTRIBUTING.md`}
             target="_blank"
@@ -57,7 +55,7 @@ export function SiteFooter() {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
           >
-            <Github className="h-3 w-3" />
+            <Github className="h-3 w-3" aria-hidden />
             GitHub
           </a>
         </nav>
