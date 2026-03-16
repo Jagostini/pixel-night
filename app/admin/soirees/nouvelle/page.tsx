@@ -9,11 +9,13 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
-import type { SpTheme } from "@/lib/types"
+import type { SpTheme, SpSalleRoom } from "@/lib/types"
 
 export default function NouvelleSoireePage() {
   const router = useRouter()
   const [salleId, setSalleId] = useState<string | null>(null)
+  const [rooms, setRooms] = useState<SpSalleRoom[]>([])
+  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null)
   const [eventDate, setEventDate] = useState("")
   const [projectionTime, setProjectionTime] = useState("")
   const [themeCount, setThemeCount] = useState(4)
@@ -24,11 +26,9 @@ export default function NouvelleSoireePage() {
   const [saving, setSaving] = useState(false)
   const [eligibleThemes, setEligibleThemes] = useState<SpTheme[]>([])
 
-  const loadSalleAndThemes = useCallback(async () => {
+  const loadData = useCallback(async () => {
     const supabase = createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
     const { data: salle } = await supabase
@@ -38,6 +38,18 @@ export default function NouvelleSoireePage() {
       .maybeSingle()
 
     setSalleId(salle?.id ?? null)
+
+    if (salle) {
+      const { data: roomData } = await supabase
+        .from("sp_salle_rooms")
+        .select("*")
+        .eq("salle_id", salle.id)
+        .order("room_order", { ascending: true })
+
+      const roomList = (roomData ?? []) as SpSalleRoom[]
+      setRooms(roomList)
+      if (roomList.length > 0) setSelectedRoomId(roomList[0].id)
+    }
 
     const now = new Date().toISOString()
     let query = supabase
@@ -58,16 +70,14 @@ export default function NouvelleSoireePage() {
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadSalleAndThemes()
-  }, [loadSalleAndThemes])
+    loadData()
+  }, [loadData])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
     const supabase = createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
       toast.error("Non connecte")
@@ -103,6 +113,7 @@ export default function NouvelleSoireePage() {
         created_by: user.id,
         proposal_enabled: proposalEnabled,
         salle_id: salleId,
+        room_id: selectedRoomId,
       })
       .select()
       .single()
@@ -118,12 +129,7 @@ export default function NouvelleSoireePage() {
 
     const { error: insertError } = await supabase
       .from("sp_soiree_themes")
-      .insert(
-        selected.map((t) => ({
-          soiree_id: soiree.id,
-          theme_id: t.id,
-        }))
-      )
+      .insert(selected.map((t) => ({ soiree_id: soiree.id, theme_id: t.id })))
 
     if (insertError) {
       toast.error(insertError.message)
@@ -135,6 +141,9 @@ export default function NouvelleSoireePage() {
     router.push(`/admin/soirees/${soiree.id}`)
   }
 
+  const roomLabel = (room: SpSalleRoom, idx: number) =>
+    room.name ? room.name : `Salle ${idx + 1}`
+
   return (
     <div className="mx-auto max-w-lg">
       <h1 className="mb-6 text-2xl font-bold">Nouvelle soiree</h1>
@@ -145,6 +154,35 @@ export default function NouvelleSoireePage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+
+            {/* Sélecteur de salle — visible seulement si plusieurs salles */}
+            {rooms.length > 1 && (
+              <div className="flex flex-col gap-2">
+                <Label>Salle</Label>
+                <div className="flex flex-wrap gap-2">
+                  {rooms.map((room, idx) => (
+                    <button
+                      key={room.id}
+                      type="button"
+                      onClick={() => setSelectedRoomId(room.id)}
+                      className={`rounded-lg border px-3 py-1.5 text-sm transition-colors ${
+                        selectedRoomId === room.id
+                          ? "border-primary bg-primary/10 text-primary font-medium"
+                          : "border-border hover:bg-secondary"
+                      }`}
+                    >
+                      {roomLabel(room, idx)}
+                      {room.capacity && (
+                        <span className="ml-1 text-xs text-muted-foreground">
+                          ({room.capacity} pl.)
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-col gap-2">
               <Label htmlFor="event-date">Date de la soiree</Label>
               <Input
@@ -155,9 +193,7 @@ export default function NouvelleSoireePage() {
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="projection-time">
-                Heure de projection (optionnel)
-              </Label>
+              <Label htmlFor="projection-time">Heure de projection (optionnel)</Label>
               <Input
                 id="projection-time"
                 type="time"
@@ -215,9 +251,7 @@ export default function NouvelleSoireePage() {
                 <Checkbox
                   id="proposal-enabled"
                   checked={proposalEnabled}
-                  onCheckedChange={(checked) =>
-                    setProposalEnabled(checked === true)
-                  }
+                  onCheckedChange={(checked) => setProposalEnabled(checked === true)}
                 />
                 <Label htmlFor="proposal-enabled" className="cursor-pointer">
                   Permettre aux invites de proposer des films
@@ -225,9 +259,7 @@ export default function NouvelleSoireePage() {
               </div>
               {proposalEnabled && (
                 <div className="flex flex-col gap-2 ml-6">
-                  <Label htmlFor="proposal-duration">
-                    Durée des propositions
-                  </Label>
+                  <Label htmlFor="proposal-duration">Durée des propositions</Label>
                   <Input
                     id="proposal-duration"
                     type="text"

@@ -26,7 +26,10 @@ import {
 } from "@/components/ui/dialog"
 
 type SoireeThemeWithJoin = SpSoireeTheme & { theme: SpTheme }
-type SpSoireeWithSalle = SpSoiree & { salle?: { id: string; slug: string; name: string } | null }
+type SpSoireeWithSalle = SpSoiree & {
+  salle?: { id: string; slug: string; name: string } | null
+  winning_theme?: { id: string; name: string } | null
+}
 
 const fetcher = async (url: string) => {
   const supabase = createClient()
@@ -37,7 +40,7 @@ const fetcher = async (url: string) => {
   if (table === "soiree") {
     const { data } = await supabase
       .from("sp_soirees")
-      .select("*, salle:sp_salles(id, slug, name)")
+      .select("*, salle:sp_salles(id, slug, name), winning_theme:sp_themes!winning_theme_id(id, name)")
       .eq("id", soireeId)
       .single()
     return data
@@ -321,6 +324,19 @@ export default function SoireePage() {
           <CountdownTimer endsAt={soiree.proposal_ends_at} onExpired={() => mutateSoiree()} />
         )}
       </div>
+
+      {/* Thème gagnant — affiché pendant les phases de film */}
+      {(phase === "film_proposal" || phase === "film_vote") && soiree.winning_theme_id && (
+        <div className="mb-5 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
+          <Trophy className="h-4 w-4 shrink-0 text-primary" />
+          <span className="text-sm font-medium">
+            Thème de la soirée :{" "}
+            <span className="text-primary">
+              {(soireeWithSalle as SpSoireeWithSalle)?.winning_theme?.name ?? "—"}
+            </span>
+          </span>
+        </div>
+      )}
 
       {/* Film proposal phase */}
       {phase === "film_proposal" && voterId && (

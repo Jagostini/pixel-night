@@ -33,14 +33,12 @@ export function CreateSalleForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!name.trim() || !slug.trim()) {
-      toast.error("Renseignez le nom et le code de la salle")
+      toast.error("Renseignez le nom et le code de votre cinema")
       return
     }
     setSaving(true)
     const supabase = createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
       toast.error("Non connecte")
@@ -48,19 +46,27 @@ export function CreateSalleForm() {
       return
     }
 
-    const { error } = await supabase.from("sp_salles").insert({
+    // Créer le cinéma (sp_salles)
+    const { data: salle, error } = await supabase.from("sp_salles").insert({
       name: name.trim(),
       slug: slug.trim(),
       created_by: user.id,
-    })
+    }).select().single()
 
-    if (error) {
-      toast.error(error.message)
+    if (error || !salle) {
+      toast.error(error?.message ?? "Erreur lors de la creation")
       setSaving(false)
       return
     }
 
-    toast.success("Salle creee !")
+    // Créer la première salle par défaut
+    await supabase.from("sp_salle_rooms").insert({
+      salle_id: salle.id,
+      name: null,
+      room_order: 1,
+    })
+
+    toast.success("Cinema cree !")
     router.refresh()
   }
 
@@ -73,18 +79,18 @@ export function CreateSalleForm() {
         <div>
           <h1 className="text-2xl font-bold">Bienvenue !</h1>
           <p className="text-sm text-muted-foreground">
-            Creez votre Salle pour commencer a organiser vos soirees cine.
+            Configurez votre cinema pour commencer a organiser vos soirees.
           </p>
         </div>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Creer ma Salle</CardTitle>
+          <CardTitle className="text-base">Creer mon Cinema</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="salle-name">Nom de la salle</Label>
+              <Label htmlFor="salle-name">Nom de votre cinema</Label>
               <Input
                 id="salle-name"
                 value={name}
@@ -94,7 +100,7 @@ export function CreateSalleForm() {
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="salle-slug">Code / URL de partage</Label>
+              <Label htmlFor="salle-slug">Code d&apos;accès participants</Label>
               <Input
                 id="salle-slug"
                 value={slug}
@@ -109,7 +115,7 @@ export function CreateSalleForm() {
               </p>
             </div>
             <Button type="submit" disabled={saving}>
-              {saving ? "Creation..." : "Creer ma salle"}
+              {saving ? "Creation..." : "Creer mon cinema"}
             </Button>
           </form>
         </CardContent>

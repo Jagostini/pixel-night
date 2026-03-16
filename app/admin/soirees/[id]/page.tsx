@@ -41,10 +41,19 @@ import {
   X,
   XCircle,
   Trash2,
+  Plus,
+  Telescope,
+  Search,
 } from "lucide-react"
 import { parseDurationToMinutes, formatDurationFromMinutes } from "@/lib/duration"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 type SoireeThemeWithJoin = SpSoireeTheme & { theme: SpTheme }
 
@@ -59,6 +68,11 @@ export default function SoireeControlPage() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [proposalDurationInput, setProposalDurationInput] = useState("1h")
+  // Film curation
+  const [addFilmOpen, setAddFilmOpen] = useState(false)
+  const [filmSearch, setFilmSearch] = useState("")
+  const [filmSearchResults, setFilmSearchResults] = useState<Array<{ id: number; title: string; poster_path: string | null; release_date: string }>>([])
+  const [filmSearchLoading, setFilmSearchLoading] = useState(false)
 
   const loadData = useCallback(async () => {
     const supabase = createClient()
@@ -116,6 +130,60 @@ export default function SoireeControlPage() {
       toast.success(`${json.count} films recuperes depuis TMDb`)
       loadData()
     } finally { setActionLoading(null) }
+  }
+
+  async function handleFetchFilmsDiscover() {
+    setActionLoading("fetch-films-discover")
+    try {
+      const res = await fetch(`/api/soirees/${id}/fetch-films-discover`, { method: "POST" })
+      const json = await res.json()
+      if (!res.ok) { toast.error(json.error); return }
+      const mode = json.used_discover ? "Decouverte par genres" : "Recherche par mots-cles"
+      toast.success(`${json.count} films recuperes (${mode})`)
+      loadData()
+    } finally { setActionLoading(null) }
+  }
+
+  async function handleDeleteFilm(filmId: string) {
+    try {
+      const res = await fetch(`/api/soirees/${id}/films`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ film_id: filmId }),
+      })
+      const json = await res.json()
+      if (!res.ok) { toast.error(json.error); return }
+      toast.success("Film supprime")
+      loadData()
+    } catch { toast.error("Erreur") }
+  }
+
+  async function handleAddFilm(tmdbId: number, title: string) {
+    try {
+      const res = await fetch(`/api/soirees/${id}/films`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tmdb_id: tmdbId }),
+      })
+      const json = await res.json()
+      if (!res.ok) { toast.error(json.error); return }
+      toast.success(`"${title}" ajoute`)
+      setAddFilmOpen(false)
+      setFilmSearch("")
+      setFilmSearchResults([])
+      loadData()
+    } catch { toast.error("Erreur") }
+  }
+
+  async function handleSearchFilm(q: string) {
+    setFilmSearch(q)
+    if (q.trim().length < 2) { setFilmSearchResults([]); return }
+    setFilmSearchLoading(true)
+    try {
+      const res = await fetch(`/api/tmdb/search?query=${encodeURIComponent(q.trim())}`)
+      const json = await res.json()
+      setFilmSearchResults((json.results ?? []).slice(0, 8))
+    } catch { /* ignore */ } finally { setFilmSearchLoading(false) }
   }
 
   async function handleStartProposals() {
@@ -382,15 +450,23 @@ export default function SoireeControlPage() {
               </Button>
             )}
             {phase === "film_vote" && films.length === 0 && !soiree.proposal_enabled && (
-              <Button onClick={handleFetchFilms} disabled={!!actionLoading}>
-                {actionLoading === "fetch-films" ? (
-                  "Recuperation..."
-                ) : (
-                  <>
-                    <Download className="mr-1 h-4 w-4" />
-                    Recuperer les films depuis TMDb
-                  </>
-                )}
+              <>
+                <Button onClick={handleFetchFilmsDiscover} disabled={!!actionLoading} variant="default">
+                  {actionLoading === "fetch-films-discover" ? "Recuperation..." : (
+                    <><Telescope className="mr-1 h-4 w-4" />Recuperer (Decouverte)</>
+                  )}
+                </Button>
+                <Button onClick={handleFetchFilms} disabled={!!actionLoading} variant="outline">
+                  {actionLoading === "fetch-films" ? "Recuperation..." : (
+                    <><Download className="mr-1 h-4 w-4" />Recuperer (Mots-cles)</>
+                  )}
+                </Button>
+              </>
+            )}
+            {phase === "film_vote" && films.length > 0 && totalFilmVotes === 0 && (
+              <Button variant="outline" onClick={() => setAddFilmOpen(true)} disabled={!!actionLoading}>
+                <Plus className="mr-1 h-4 w-4" />
+                Ajouter un film
               </Button>
             )}
             {phase === "film_vote" && films.length > 0 && (
@@ -473,7 +549,7 @@ export default function SoireeControlPage() {
                   <div className="aspect-[2/3] w-full overflow-hidden rounded-t-lg bg-secondary">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={tmdbPoster(p.poster_path, "w342")}
+                      src={tmdbPoster(p.poster_path ?? null, "w342")}
                       alt={p.title}
                       className="h-full w-full object-cover"
                       loading="lazy"
@@ -495,6 +571,9 @@ export default function SoireeControlPage() {
           <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold">
             <Film className="h-5 w-5 text-primary" />
             Films ({totalFilmVotes} votes)
+            {phase === "film_vote" && totalFilmVotes === 0 && (
+              <span className="text-xs font-normal text-muted-foreground ml-1">— modifiable avant le premier vote</span>
+            )}
           </h2>
           <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {films.map((f, i) => (
@@ -522,6 +601,16 @@ export default function SoireeControlPage() {
                       <Crown className="h-5 w-5 text-primary" />
                     </div>
                   )}
+                  {/* Bouton supprimer — visible seulement avant le premier vote */}
+                  {phase === "film_vote" && totalFilmVotes === 0 && (
+                    <button
+                      onClick={() => handleDeleteFilm(f.id)}
+                      className="absolute right-1 bottom-1 flex h-6 w-6 items-center justify-center rounded-full bg-destructive/80 text-white hover:bg-destructive transition-colors"
+                      title="Supprimer ce film"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
                 </div>
                 <CardContent className="p-2">
                   <p className="line-clamp-1 text-xs font-medium">{f.title}</p>
@@ -534,6 +623,63 @@ export default function SoireeControlPage() {
           </div>
         </section>
       )}
+
+      {/* Dialog — Ajouter un film */}
+      <Dialog open={addFilmOpen} onOpenChange={(o) => { setAddFilmOpen(o); if (!o) { setFilmSearch(""); setFilmSearchResults([]) } }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Ajouter un film</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                className="pl-9"
+                placeholder="Rechercher un film..."
+                value={filmSearch}
+                onChange={(e) => handleSearchFilm(e.target.value)}
+                autoFocus
+              />
+            </div>
+            {filmSearchLoading && (
+              <p className="text-center text-sm text-muted-foreground">Recherche...</p>
+            )}
+            {filmSearchResults.length > 0 && (
+              <div className="flex flex-col gap-2 max-h-80 overflow-y-auto">
+                {filmSearchResults.map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => handleAddFilm(m.id, m.title)}
+                    className="flex items-center gap-3 rounded-lg border p-2 text-left hover:bg-secondary transition-colors"
+                  >
+                    {m.poster_path ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={tmdbPoster(m.poster_path, "w342")}
+                        alt={m.title}
+                        className="h-14 w-10 shrink-0 rounded object-cover"
+                      />
+                    ) : (
+                      <div className="h-14 w-10 shrink-0 rounded bg-secondary" />
+                    )}
+                    <div>
+                      <p className="text-sm font-medium">{m.title}</p>
+                      {m.release_date && (
+                        <p className="text-xs text-muted-foreground">
+                          {m.release_date.slice(0, 4)}
+                        </p>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+            {filmSearch.trim().length >= 2 && !filmSearchLoading && filmSearchResults.length === 0 && (
+              <p className="text-center text-sm text-muted-foreground">Aucun resultat</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
