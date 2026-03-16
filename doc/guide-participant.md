@@ -6,10 +6,17 @@ Bienvenue ! Ce guide explique comment participer à une soirée Pixel Night.
 ## Rejoindre une soirée
 
 1. Ouvrir l'application Pixel Night (lien fourni par votre organisateur)
-2. Sur la page d'accueil, saisir le **code de la salle** (exemple : `cine-des-potes`)
+2. Sur la page d'accueil, saisir le **code du cinéma** (exemple : `cine-des-potes`)
 3. Cliquer **Rejoindre**
 
 Vous pouvez aussi accéder directement via un lien comme `/s/cine-des-potes`.
+
+La page du cinéma affiche :
+- Les **soirées en cours** avec un bouton pour voter
+- Les **prochaines soirées** planifiées
+- Les **soirées passées** avec leurs films gagnants
+
+> Si le cinéma a plusieurs salles, un badge indique à quelle salle appartient chaque soirée.
 
 ## Voter pour un thème
 
@@ -20,6 +27,14 @@ Quand la soirée est en phase de vote thème :
 3. Votre vote est enregistré instantanément — vous ne pouvez voter qu'une seule fois
 
 > Une fois voté, le bouton est désactivé. Vous verrez la confirmation de votre vote.
+
+## Voir le thème gagnant
+
+Une fois le thème désigné, un bandeau s'affiche sur la page de vote :
+
+> 🏆 Thème de la soirée : **Science-Fiction**
+
+Ce bandeau est visible pendant la phase de propositions et de vote film.
 
 ## Proposer un film (si activé)
 
@@ -55,7 +70,7 @@ Non. Aucune inscription, aucun email requis.
 
 **Comment mon vote est-il identifié ?**
 Un identifiant anonyme (code unique) est créé dans votre navigateur la première fois.
-Aucune donnée personnelle n't est collectée.
+Aucune donnée personnelle n'est collectée.
 
 **Puis-je changer mon vote ?**
 Non — une fois voté, c'est définitif.

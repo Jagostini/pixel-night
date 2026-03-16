@@ -9,7 +9,7 @@ info:
 
     **Identifiant votant anonyme** : `voter_id` est un UUID généré côté client et stocké dans
     le `localStorage` du navigateur. Il permet de garantir l'unicité du vote sans compte.
-  version: 1.0.0
+  version: 1.3.0
   contact:
     url: https://github.com/Jagostini/pixel-night
   license:
@@ -279,7 +279,7 @@ paths:
   /soirees/{id}/fetch-films:
     post:
       tags: [Administration]
-      summary: Récupérer les films depuis TMDb
+      summary: Récupérer les films depuis TMDb (mots-clés)
       description: |
         Interroge TMDb avec les mots-clés du thème gagnant pour peupler `sp_soiree_films`.
 
@@ -316,6 +316,171 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           description: Aucun film trouvé sur TMDb
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /soirees/{id}/fetch-films-discover:
+    post:
+      tags: [Administration]
+      summary: Récupérer les films via TMDb Discover (genres)
+      description: |
+        Interroge TMDb Discover avec les `genre_ids` du thème gagnant.
+        Récupère 5 pages aléatoires parmi les 10 premières pour de la variété.
+
+        Si le thème n'a pas de `genre_ids` configurés, effectue un repli automatique
+        sur la recherche par mots-clés (identique à `fetch-films`).
+
+        **Filtres Discover** :
+        - `vote_count.gte=100`
+        - `vote_average.gte=6`
+        - `sort_by=popularity.desc`
+      security:
+        - SupabaseSession: []
+      parameters:
+        - $ref: '#/components/parameters/SoireeId'
+      responses:
+        '200':
+          description: Films insérés
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  count:
+                    type: integer
+                  used_discover:
+                    type: boolean
+                    description: True si TMDb Discover a été utilisé, false si repli mots-clés
+        '400':
+          description: Pas de thème gagnant défini
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Aucun film trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /soirees/{id}/films:
+    get:
+      tags: [Administration]
+      summary: Lister les films d'une soirée
+      description: Retourne tous les films associés à la soirée (`sp_soiree_films`).
+      security:
+        - SupabaseSession: []
+      parameters:
+        - $ref: '#/components/parameters/SoireeId'
+      responses:
+        '200':
+          description: Liste des films
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  films:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SoireeFilm'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Administration]
+      summary: Ajouter un film manuellement (curation)
+      description: |
+        Ajoute un film depuis TMDb à la liste `sp_soiree_films`.
+        Récupère automatiquement les détails (réalisateur, durée, bande-annonce).
+
+        **Bloqué** si des votes film ont déjà été enregistrés (retourne 409).
+      security:
+        - SupabaseSession: []
+      parameters:
+        - $ref: '#/components/parameters/SoireeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tmdb_id]
+              properties:
+                tmdb_id:
+                  type: integer
+                  description: ID TMDb du film à ajouter
+      responses:
+        '200':
+          description: Film ajouté
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessTrue'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Film introuvable sur TMDb
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Des votes ont déjà été enregistrés — curation impossible
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Des votes ont été enregistrés, la liste ne peut plus être modifiée
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      tags: [Administration]
+      summary: Supprimer un film de la liste (curation)
+      description: |
+        Supprime un film de `sp_soiree_films`.
+
+        **Bloqué** si des votes film ont déjà été enregistrés (retourne 409).
+      security:
+        - SupabaseSession: []
+      parameters:
+        - $ref: '#/components/parameters/SoireeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [film_id]
+              properties:
+                film_id:
+                  type: string
+                  format: uuid
+                  description: ID de l'entrée `sp_soiree_films` à supprimer
+      responses:
+        '200':
+          description: Film supprimé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessTrue'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Des votes ont déjà été enregistrés — curation impossible
           content:
             application/json:
               schema:
@@ -671,9 +836,55 @@ components:
           type: string
           format: uuid
           nullable: true
+        room_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Salle physique du cinéma associée à cette soirée
         winning_film_title:
           type: string
           nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    SoireeFilm:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        soiree_id:
+          type: string
+          format: uuid
+        tmdb_id:
+          type: integer
+        title:
+          type: string
+        poster_path:
+          type: string
+          nullable: true
+        overview:
+          type: string
+          nullable: true
+        release_date:
+          type: string
+          format: date
+          nullable: true
+        director:
+          type: string
+          nullable: true
+        duration:
+          type: integer
+          description: Durée en minutes
+          nullable: true
+        trailer_url:
+          type: string
+          format: uri
+          nullable: true
+        vote_count:
+          type: integer
+          default: 0
         created_at:
           type: string
           format: date-time

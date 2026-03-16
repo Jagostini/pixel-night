@@ -30,16 +30,15 @@ pixel-night/
 ├── app/
 │   ├── admin/              # Pages admin (auth requise)
 │   │   ├── soirees/        # Liste + détail soirée
-│   │   ├── salles/         # Gestion des salles
-│   │   ├── themes/         # Catalogue de thèmes
-│   │   └── parametres/     # Config token TMDb
+│   │   ├── themes/         # Catalogue de thèmes + import
+│   │   └── parametres/     # Config token TMDb, cinéma, salles, exclusion
 │   ├── api/
-│   │   ├── soirees/[id]/   # Votes, phases, propositions
+│   │   ├── soirees/[id]/   # Votes, phases, propositions, curation films
 │   │   └── tmdb/           # Proxy TMDb, token, statut
 │   ├── auth/               # Login / signup
 │   ├── docs/               # Route handler → Redoc (OpenAPI)
 │   ├── roadmap/            # Page feuille de route (ISR GitHub)
-│   └── s/[slug]/           # Page publique soirée
+│   └── s/[slug]/           # Page publique cinéma
 ├── components/
 │   ├── ui/                 # Shadcn UI (auto-généré, ne pas modifier)
 │   └── *.tsx               # Composants métier
@@ -48,15 +47,16 @@ pixel-night/
 │   │   ├── client.ts       # createBrowserClient (Client Components)
 │   │   ├── server.ts       # createServerClient (Server Components, Route Handlers)
 │   │   └── admin.ts        # createAdminClient (service role, contourne RLS)
-│   ├── types.ts            # Types partagés (SoireePhase, SpSoiree, etc.)
+│   ├── types.ts            # Types partagés (SoireePhase, SpSoiree, ExclusionMode, etc.)
 │   ├── tmdb.ts             # tmdbPoster(), tmdbBackdrop(), tmdbHeaders()
 │   ├── tmdb-token.ts       # getActiveTmdbToken() — env var ou DB chiffré
+│   ├── theme-catalog.ts    # THEME_CATALOG, TMDB_GENRES, TMDB_GENRE_LIST
 │   ├── encryption.ts       # encrypt() / decrypt() AES-256-GCM
 │   ├── duration.ts         # parseDurationToMinutes() / formatDurationFromMinutes()
 │   └── voter.ts            # getVoterId() — ID anonyme localStorage
 ├── __tests__/
 │   ├── lib/                # Tests unitaires des utilitaires
-│   └── api/                # Tests de logique API (finalize-*)
+│   └── api/                # Tests de logique API (finalize-*, exclusion, curation)
 ├── scripts/                # Migrations SQL (exécuter dans l'ordre)
 ├── doc/                    # Documentation
 ├── public/
@@ -111,6 +111,21 @@ if (!token) return NextResponse.json({ error: "Token TMDb non configuré" }, { s
 
 // Toujours passer le token explicitement à tmdbHeaders
 const res = await fetch(url, { headers: tmdbHeaders(token) })
+```
+
+### `lib/theme-catalog.ts`
+
+```typescript
+import { THEME_CATALOG, TMDB_GENRES, TMDB_GENRE_LIST, type CatalogTheme } from "@/lib/theme-catalog"
+
+// 30 thèmes pré-définis avec genre_ids[] et keywords[]
+THEME_CATALOG[0]  // { name: "Action & Aventure", genre_ids: [28, 12], keywords: [...] }
+
+// Mapping id → libellé français
+TMDB_GENRES[878]  // "Science-Fiction"
+
+// Liste triée alphabétiquement pour les sélecteurs
+TMDB_GENRE_LIST   // [{ id: 28, label: "Action" }, { id: 12, label: "Aventure" }, ...]
 ```
 
 ### `lib/duration.ts`
@@ -183,11 +198,14 @@ pnpm test lib/encryption     # Run specific test file
 | Fichier de test | Ce qui est testé |
 |---|---|
 | `__tests__/lib/tmdb.test.ts` | `tmdbPoster()`, `tmdbBackdrop()`, `tmdbHeaders()` |
-| `__tests__/lib/duration.test.ts` | `parseDurationToMinutes()`, `formatDurationFromMinutes()` |
-| `__tests__/lib/encryption.test.ts` | `encrypt()`, `decrypt()`, round-trips, tampering |
-| `__tests__/lib/tmdb-token.test.ts` | `getActiveTmdbToken()` — env var, DB fallback, erreurs |
-| `__tests__/api/finalize-theme.test.ts` | Logique de départage à égalité |
+| `__tests__/lib/duration.test.ts` | `parseDurationToMinutes()`, `formatDurationFromMinutes()`, formats divers |
+| `__tests__/lib/encryption.test.ts` | `encrypt()`, `decrypt()`, round-trips, mauvaise clé, tampering |
+| `__tests__/lib/tmdb-token.test.ts` | `getActiveTmdbToken()` — env var, DB fallback, erreurs decrypt/Supabase |
+| `__tests__/lib/theme-catalog.test.ts` | Intégrité du catalogue (30 thèmes, genre_ids valides, TMDB_GENRE_LIST trié) |
+| `__tests__/api/finalize-theme.test.ts` | Logique de départage à égalité (tirage au sort) |
 | `__tests__/api/finalize-film.test.ts` | Logique de départage à égalité |
+| `__tests__/api/exclusion.test.ts` | Calcul de `excluded_until` pour les 3 modes (none/days/soirees) |
+| `__tests__/api/films-curation.test.ts` | Vérification vote-lock (autoriser si 0 votes, bloquer si votes > 0) |
 
 ### Écrire un test
 
@@ -226,7 +244,8 @@ Les migrations sont dans `scripts/` — exécuter dans l'ordre dans le SQL Edito
 005_sp_add_tmdb_token.sql
 006_sp_add_salles.sql
 007_sp_grants_salles.sql
+008_sp_cinema_rooms_features.sql    ← cinéma/salles, exclusion, genre_ids
 ```
 
 Pour ajouter une migration : créer `scripts/00N_sp_description.sql` avec des `ALTER TABLE`
-ou `CREATE TABLE IF NOT EXISTS`.
+ou `CREATE TABLE IF NOT EXISTS`. Utiliser `IF NOT EXISTS` pour rendre les migrations idempotentes.
