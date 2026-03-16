@@ -6,6 +6,21 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.3.0] — 2026-03-16
+
+**Commits** : [`5b3e529`](https://github.com/Jagostini/pixel-night/commit/5b3e529) → [`d697313`](https://github.com/Jagostini/pixel-night/commit/d697313)
+
+Inclut : PR #7 (`documentation`).
+
+### Ajouté
+- Système de documentation dynamique avec rendu Markdown et référence API interactive (Redoc + OpenAPI)
+- Configuration Dependabot pour npm et GitHub Actions (mises à jour automatiques des dépendances)
+- Gouvernance du projet : guide de contribution (`CONTRIBUTING.md`), code de conduite, templates de PR/issues
+- Améliorations CI/CD : workflows GitHub Actions renforcés
+- Renommage du projet en **Pixel Night**
+
+---
+
 ## [1.2.0] — 2026-03-15
 
 **Commits** : [`67872a3`](https://github.com/Jagostini/pixel-night/commit/67872a3) → [`015e412`](https://github.com/Jagostini/pixel-night/commit/015e412)
