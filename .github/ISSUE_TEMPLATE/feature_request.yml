@@ -1,0 +1,49 @@
+name: "✨ Suggestion de fonctionnalité"
+description: Proposer une idée ou une amélioration
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci pour votre suggestion ! Décrivez votre idée aussi précisément que possible.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Quel problème cette fonctionnalité résout-elle ?
+      description: Décrivez le besoin ou la frustration à l'origine de cette demande.
+      placeholder: "En tant qu'organisateur, je ne peux pas faire X ce qui m'oblige à..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Solution proposée
+      description: Décrivez la fonctionnalité que vous aimeriez voir ajoutée.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives envisagées
+      description: Avez-vous considéré d'autres approches ?
+
+  - type: dropdown
+    id: audience
+    attributes:
+      label: Public cible
+      options:
+        - Participant
+        - Organisateur
+        - Les deux
+        - Développeur / technique
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexte additionnel
+      description: Captures d'écran, maquettes, liens vers des projets similaires…
