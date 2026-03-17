@@ -2,6 +2,7 @@
   "name": "pixel-night",
   "version": "1.3.0",
   "private": true,
+  "packageManager": "pnpm@9.0.0",
   "scripts": {
     "dev": "next dev",
     "prebuild": "cp node_modules/redoc/bundles/redoc.standalone.js public/redoc.standalone.js",
