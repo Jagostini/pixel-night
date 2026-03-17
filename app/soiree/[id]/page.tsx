@@ -103,7 +103,7 @@ export default function SoireePage() {
       .eq("soiree_id", id)
       .eq("voter_id", voterId)
       .maybeSingle()
-      .then(({ data }) => {
+      .then(({ data }: { data: { soiree_theme_id: string } | null }) => {
         if (data) setVotedThemeId(data.soiree_theme_id)
       })
 
@@ -113,7 +113,7 @@ export default function SoireePage() {
       .eq("soiree_id", id)
       .eq("voter_id", voterId)
       .maybeSingle()
-      .then(({ data }) => {
+      .then(({ data }: { data: { soiree_film_id: string } | null }) => {
         if (data) setVotedFilmId(data.soiree_film_id)
       })
   }, [id, voterId])

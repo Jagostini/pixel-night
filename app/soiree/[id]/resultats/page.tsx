@@ -1,10 +1,10 @@
 import { createClient } from "@/lib/supabase/server"
 import { notFound } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { tmdbPoster } from "@/lib/tmdb"
 import { Trophy, Film, Palette, Crown, ArrowLeft, Users, Calendar } from "lucide-react"
-import type { SpSoireeTheme, SpSoireeFilm, SpTheme, SoireePhase } from "@/lib/types"
+import type { SpSoireeTheme, SpSoireeFilm, SpTheme } from "@/lib/types"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
