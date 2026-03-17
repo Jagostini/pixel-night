@@ -14,9 +14,10 @@ import {
   Trophy,
   Calendar,
   Clock,
+  DoorOpen,
 } from "lucide-react"
 import { tmdbPoster } from "@/lib/tmdb"
-import type { SpSoiree, SoireePhase } from "@/lib/types"
+import type { SpSoiree, SpSalleRoom, SoireePhase } from "@/lib/types"
 
 interface SoireeWithCounts extends SpSoiree {
   theme_vote_total: number
@@ -38,6 +39,16 @@ export default async function SallePage({
     .maybeSingle()
 
   if (!salle) notFound()
+
+  // Charger les salles (rooms) du cinéma
+  const { data: roomsData } = await supabase
+    .from("sp_salle_rooms")
+    .select("*")
+    .eq("salle_id", salle.id)
+    .order("room_order", { ascending: true })
+
+  const rooms = (roomsData ?? []) as SpSalleRoom[]
+  const hasMultipleRooms = rooms.length > 1
 
   const { data: upcomingData } = await supabase
     .from("sp_soirees")
@@ -96,6 +107,9 @@ export default async function SallePage({
   const activeSoirees = (activeData ?? []).map(withCounts)
   const pastSoirees = (pastData ?? []).map(withCounts)
 
+  // Helpers pour trouver le nom d'une salle à partir de son ID
+  const roomMap = new Map(rooms.map((r, idx) => [r.id, r.name ?? `Salle ${idx + 1}`]))
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
       {/* Header */}
@@ -106,6 +120,17 @@ export default async function SallePage({
         <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
           {salle.name}
         </h1>
+        {hasMultipleRooms && (
+          <div className="flex flex-wrap justify-center gap-2">
+            {rooms.map((r, idx) => (
+              <Badge key={r.id} variant="secondary" className="gap-1">
+                <DoorOpen className="h-3 w-3" />
+                {r.name ?? `Salle ${idx + 1}`}
+                {r.capacity && <span className="text-muted-foreground">· {r.capacity} pl.</span>}
+              </Badge>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Upcoming soirees */}
@@ -120,7 +145,11 @@ export default async function SallePage({
           </h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {upcomingSoirees.map((s) => (
-              <SoireeUpcomingCard key={s.id} soiree={s} />
+              <SoireeUpcomingCard
+                key={s.id}
+                soiree={s}
+                roomName={hasMultipleRooms && s.room_id ? roomMap.get(s.room_id) : undefined}
+              />
             ))}
           </div>
         </section>
@@ -138,7 +167,11 @@ export default async function SallePage({
           </h2>
           <div className="grid gap-4">
             {activeSoirees.map((s) => (
-              <SoireeActiveCard key={s.id} soiree={s} />
+              <SoireeActiveCard
+                key={s.id}
+                soiree={s}
+                roomName={hasMultipleRooms && s.room_id ? roomMap.get(s.room_id) : undefined}
+              />
             ))}
           </div>
         </section>
@@ -167,7 +200,11 @@ export default async function SallePage({
           </h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {pastSoirees.map((s) => (
-              <SoireePastCard key={s.id} soiree={s} />
+              <SoireePastCard
+                key={s.id}
+                soiree={s}
+                roomName={hasMultipleRooms && s.room_id ? roomMap.get(s.room_id) : undefined}
+              />
             ))}
           </div>
         </section>
@@ -176,11 +213,15 @@ export default async function SallePage({
   )
 }
 
-function SoireeActiveCard({ soiree }: { soiree: SoireeWithCounts }) {
+function SoireeActiveCard({
+  soiree,
+  roomName,
+}: {
+  soiree: SoireeWithCounts
+  roomName?: string
+}) {
   const isThemePhase = soiree.phase === "theme_vote"
-  const totalVotes = isThemePhase
-    ? soiree.theme_vote_total
-    : soiree.film_vote_total
+  const totalVotes = isThemePhase ? soiree.theme_vote_total : soiree.film_vote_total
 
   return (
     <Card className="border-primary/30">
@@ -196,6 +237,12 @@ function SoireeActiveCard({ soiree }: { soiree: SoireeWithCounts }) {
           <div className="flex flex-col gap-1">
             <div className="flex flex-wrap items-center gap-2">
               <SoireeStatus phase={soiree.phase as SoireePhase} />
+              {roomName && (
+                <Badge variant="outline" className="gap-1 text-xs">
+                  <DoorOpen className="h-3 w-3" />
+                  {roomName}
+                </Badge>
+              )}
               {soiree.event_date && (
                 <span className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Calendar className="h-3 w-3" />
@@ -231,12 +278,18 @@ function SoireeActiveCard({ soiree }: { soiree: SoireeWithCounts }) {
   )
 }
 
-function SoireePastCard({ soiree }: { soiree: SoireeWithCounts }) {
+function SoireePastCard({
+  soiree,
+  roomName,
+}: {
+  soiree: SoireeWithCounts
+  roomName?: string
+}) {
   const totalVotes = soiree.theme_vote_total + soiree.film_vote_total
   return (
     <Card className="flex flex-col">
       <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <CardTitle className="text-sm font-medium">
             {soiree.event_date
               ? new Date(soiree.event_date).toLocaleDateString("fr-FR", {
@@ -246,7 +299,15 @@ function SoireePastCard({ soiree }: { soiree: SoireeWithCounts }) {
                 })
               : "Date non definie"}
           </CardTitle>
-          <SoireeStatus phase={soiree.phase as SoireePhase} />
+          <div className="flex items-center gap-1">
+            {roomName && (
+              <Badge variant="outline" className="gap-1 text-xs">
+                <DoorOpen className="h-3 w-3" />
+                {roomName}
+              </Badge>
+            )}
+            <SoireeStatus phase={soiree.phase as SoireePhase} />
+          </div>
         </div>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-3">
@@ -280,12 +341,7 @@ function SoireePastCard({ soiree }: { soiree: SoireeWithCounts }) {
           <span>{totalVotes} votes au total</span>
         </div>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          asChild
-          className="mt-auto self-start"
-        >
+        <Button variant="ghost" size="sm" asChild className="mt-auto self-start">
           <Link href={`/soiree/${soiree.id}/resultats`}>
             Voir les resultats
             <ArrowRight className="ml-1 h-4 w-4" />
@@ -296,7 +352,13 @@ function SoireePastCard({ soiree }: { soiree: SoireeWithCounts }) {
   )
 }
 
-function SoireeUpcomingCard({ soiree }: { soiree: SpSoiree }) {
+function SoireeUpcomingCard({
+  soiree,
+  roomName,
+}: {
+  soiree: SpSoiree
+  roomName?: string
+}) {
   return (
     <Card className="border-dashed">
       <CardContent className="flex flex-col gap-3 p-5">
@@ -307,6 +369,12 @@ function SoireeUpcomingCard({ soiree }: { soiree: SpSoiree }) {
           <Badge variant="secondary" className="text-xs">
             Bientot
           </Badge>
+          {roomName && (
+            <Badge variant="outline" className="gap-1 text-xs">
+              <DoorOpen className="h-3 w-3" />
+              {roomName}
+            </Badge>
+          )}
         </div>
         {soiree.event_date ? (
           <p className="flex items-center gap-1 text-sm font-medium">

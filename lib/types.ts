@@ -2,11 +2,24 @@
 
 export type SoireePhase = "planned" | "theme_vote" | "film_proposal" | "film_vote" | "completed" | "cancelled";
 
+export type ExclusionMode = "none" | "days" | "soirees";
+
 export interface SpSalle {
   id: string
   name: string
   slug: string
   created_by: string
+  created_at: string
+  exclusion_mode: ExclusionMode
+  exclusion_value: number
+}
+
+export interface SpSalleRoom {
+  id: string
+  salle_id: string
+  name: string | null
+  capacity: number | null
+  room_order: number
   created_at: string
 }
 
@@ -21,6 +34,7 @@ export interface SpTheme {
   id: string;
   name: string;
   keywords: string[];
+  genre_ids: number[];
   is_active: boolean;
   excluded_until: string | null;
   created_by: string | null;
@@ -51,6 +65,7 @@ export interface SpSoiree {
   /** When the proposal phase ends (ISO datetime) */
   proposal_ends_at?: string | null;
   salle_id?: string | null;
+  room_id?: string | null;
 }
 
 export interface SpSoireeTheme {
@@ -116,6 +131,7 @@ export interface TmdbMovie {
   overview: string;
   release_date: string;
   vote_average: number;
+  vote_count: number;
   genre_ids: number[];
 }
 

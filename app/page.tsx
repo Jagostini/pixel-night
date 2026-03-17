@@ -25,7 +25,7 @@ export default function Home() {
 
       <h1 className="mb-2 text-4xl font-bold tracking-tight">Pixel Night</h1>
       <p className="mb-8 max-w-sm text-pretty text-muted-foreground">
-        Votez pour un theme, puis pour un film. Rejoignez la salle de votre
+        Votez pour un theme, puis pour un film. Rejoignez le cinema de votre
         organisateur avec son code.
       </p>
 
@@ -33,7 +33,7 @@ export default function Home() {
         <Input
           value={slug}
           onChange={(e) => setSlug(e.target.value)}
-          placeholder="Code de la salle (ex: cine-des-potes)"
+          placeholder="Code du cinema (ex: cine-des-potes)"
           className="flex-1"
           required
         />

@@ -7,13 +7,24 @@ const eslintConfig = [
   ...nextTypescript,
   {
     rules: {
-      "@typescript-eslint/no-unused-vars": "warn",
+      // Variables préfixées par _ sont intentionnellement non utilisées (convention)
+      "@typescript-eslint/no-unused-vars": ["warn", {
+        argsIgnorePattern: "^_",
+        varsIgnorePattern: "^_",
+        caughtErrorsIgnorePattern: "^_",
+      }],
       "@typescript-eslint/no-explicit-any": "warn",
     },
   },
-  // Ignore auto-generated shadcn/ui components
+  // Ignore auto-generated / vendored files
   {
-    ignores: ["components/ui/**"],
+    ignores: [
+      "components/ui/**",   // shadcn/ui auto-generated
+      "hooks/use-toast.ts", // shadcn/ui auto-generated hook
+      "public/**",          // vendored assets (redoc.standalone.js, etc.)
+      ".next/**",
+      "coverage/**",        // rapports de couverture générés par vitest
+    ],
   },
 ]
 

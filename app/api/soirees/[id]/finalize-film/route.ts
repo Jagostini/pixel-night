@@ -17,7 +17,7 @@ export async function POST(
 
   const supabase = createAdminClient()
 
-  // Get soiree to know exclusion count
+  // Get soiree
   const { data: soiree } = await supabase
     .from("sp_soirees")
     .select("*")
@@ -59,14 +59,29 @@ export async function POST(
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  // Mark winning theme as excluded for N soirees
-  if (soiree.winning_theme_id) {
-    const exclusionDate = new Date()
-    exclusionDate.setDate(exclusionDate.getDate() + soiree.exclusion_soirees * 30)
-    await supabase
-      .from("sp_themes")
-      .update({ excluded_until: exclusionDate.toISOString() })
-      .eq("id", soiree.winning_theme_id)
+  // Appliquer l'exclusion du thème gagnant selon les règles du cinéma
+  if (soiree.winning_theme_id && soiree.salle_id) {
+    const { data: salle } = await supabase
+      .from("sp_salles")
+      .select("exclusion_mode, exclusion_value")
+      .eq("id", soiree.salle_id)
+      .single()
+
+    if (salle && salle.exclusion_mode !== "none") {
+      const exclusionDate = new Date()
+
+      if (salle.exclusion_mode === "days") {
+        exclusionDate.setDate(exclusionDate.getDate() + salle.exclusion_value)
+      } else {
+        // "soirees" : N soirées × 30 jours
+        exclusionDate.setDate(exclusionDate.getDate() + salle.exclusion_value * 30)
+      }
+
+      await supabase
+        .from("sp_themes")
+        .update({ excluded_until: exclusionDate.toISOString() })
+        .eq("id", soiree.winning_theme_id)
+    }
   }
 
   return NextResponse.json({

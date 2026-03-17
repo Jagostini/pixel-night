@@ -19,8 +19,11 @@ pnpm test --coverage   # Couverture de code
 | `__tests__/lib/duration.test.ts` | 30+ | `parseDurationToMinutes()`, `formatDurationFromMinutes()`, formats divers |
 | `__tests__/lib/encryption.test.ts` | 9 | `encrypt()`, `decrypt()`, round-trips, mauvaise clé, tampering |
 | `__tests__/lib/tmdb-token.test.ts` | 7 | `getActiveTmdbToken()` — env var, DB fallback, erreurs decrypt/Supabase |
+| `__tests__/lib/theme-catalog.test.ts` | 6 | Intégrité du catalogue, genre_ids valides, tri TMDB_GENRE_LIST |
 | `__tests__/api/finalize-theme.test.ts` | — | Logique de départage à égalité (tirage au sort) |
-| `__tests__/api/finalize-film.test.ts` | — | Logique de départage à égalité |
+| `__tests__/api/finalize-film.test.ts` | 4 | Logique de départage à égalité |
+| `__tests__/api/exclusion.test.ts` | 6 | Calcul `excluded_until` pour les 3 modes d'exclusion |
+| `__tests__/api/films-curation.test.ts` | 5 | Vote-lock : autoriser la curation si 0 votes, bloquer sinon |
 
 ## Plan de test manuel
 
@@ -44,32 +47,74 @@ pnpm test --coverage   # Couverture de code
 
 ---
 
-### Module 2 — Création de soirée
+### Module 2 — Configuration cinéma et salles
 
 | ID | Scénario | Action | Résultat attendu |
 |---|---|---|---|
-| CREA-01 | Création basique | Remplir le formulaire, sans propositions | Soirée créée en phase `planned` |
-| CREA-02 | Avec propositions | Activer "propositions", saisir "2 jours" | Soirée créée, durée correctement parsée |
-| CREA-03 | Durée invalide | Saisir "abc" dans le champ durée | Bouton "Créer" désactivé, « Format non reconnu » |
-| CREA-04 | Durée "1h30" | Saisir "1h30" | Aperçu « Durée : 1h30 », soit 90 min |
-| CREA-05 | Durée "3j" | Saisir "3j" | Aperçu « Durée : 3j », soit 4320 min |
+| CINE-01 | Affichage paramètres | Ouvrir `/admin/parametres` | Nom, slug, URL de partage affichés |
+| CINE-02 | Modifier le nom | Changer le nom, enregistrer | Nom mis à jour, toast succès |
+| CINE-03 | Ajouter une salle | Cliquer "+ Ajouter une salle", nommer | Salle apparaît dans la liste |
+| CINE-04 | Salle avec capacité | Ajouter une salle avec 50 places | Capacité affichée sur la carte |
+| CINE-05 | Supprimer une salle | Cliquer supprimer sur une salle | Salle disparaît |
+| CINE-06 | Règle exclusion "jours" | Sélectionner "Par jours", valeur 7 | Sauvegardé, thème gagnant exclu 7 jours après finalisation |
+| CINE-07 | Règle exclusion "soirées" | Sélectionner "Par soirées", valeur 3 | Thème exclu ~90 jours après finalisation |
+| CINE-08 | Règle exclusion "aucune" | Sélectionner "Aucune exclusion" | Thème disponible immédiatement à la prochaine soirée |
 
 ---
 
-### Module 3 — Vote de thème
+### Module 3 — Gestion des thèmes
 
 | ID | Scénario | Action | Résultat attendu |
 |---|---|---|---|
-| VOTE-T01 | Accès page publique | Ouvrir `/s/{slug}` | Affiche les thèmes si phase `theme_vote` |
-| VOTE-T02 | Premier vote | Cliquer sur un thème | Toast succès, bouton désactivé |
-| VOTE-T03 | Double vote (même session) | Re-cliquer un thème | Toast erreur « Déjà voté » |
-| VOTE-T04 | Double vote (localStorage vidé) | Vider localStorage, recharger, voter | Vote accepté (nouvel ID anonyme) |
+| THEME-01 | Importer depuis le catalogue | Cliquer "Catalogue", importer "Western" | Thème ajouté avec genres et mots-clés |
+| THEME-02 | Catalogue masque les doublons | Ré-ouvrir le catalogue | "Western" ne figure plus dans la liste |
+| THEME-03 | Créer thème avec genres | Nouveau thème, cocher "Action" et "Aventure" | Badges genres affichés sur la carte |
+| THEME-04 | Créer thème sans genres | Nouveau thème, seulement des mots-clés | Aucun badge genre, mots-clés affichés |
+| THEME-05 | Activer / désactiver | Cliquer "Désactiver" sur un thème | Thème exclu des soirées suivantes |
+
+---
+
+### Module 4 — Création de soirée
+
+| ID | Scénario | Action | Résultat attendu |
+|---|---|---|---|
+| CREA-01 | Cinéma avec une salle | Créer une soirée | Aucun sélecteur de salle affiché |
+| CREA-02 | Cinéma avec plusieurs salles | Créer une soirée | Sélecteur de salle affiché, première sélectionnée par défaut |
+| CREA-03 | Changer de salle | Sélectionner une autre salle | Salle mise en évidence |
+| CREA-04 | Création basique | Remplir le formulaire, sans propositions | Soirée créée en phase `theme_vote` |
+| CREA-05 | Avec propositions | Activer "propositions", saisir "2 jours" | Soirée créée, durée correctement parsée |
+| CREA-06 | Durée invalide | Saisir "abc" dans le champ durée | Bouton "Créer" désactivé, « Format non reconnu » |
+
+---
+
+### Module 5 — Vote de thème
+
+| ID | Scénario | Action | Résultat attendu |
+|---|---|---|---|
+| VOTE-T01 | Accès page publique | Ouvrir `/s/{slug}` | Affiche les soirées du cinéma |
+| VOTE-T02 | Badge salle | Cinéma avec plusieurs salles | Badge salle visible sur chaque soirée |
+| VOTE-T03 | Premier vote | Cliquer sur un thème | Toast succès, bouton désactivé |
+| VOTE-T04 | Double vote (même session) | Re-cliquer un thème | Toast erreur « Déjà voté » |
 | VOTE-T05 | Finaliser (sans égalité) | Admin : cliquer "Finaliser le thème" | Thème gagnant affiché, phase change |
 | VOTE-T06 | Finaliser (avec égalité) | Votes égaux sur 2 thèmes | Un thème désigné au hasard |
 
 ---
 
-### Module 4 — Phase propositions
+### Module 6 — Récupération et curation des films
+
+| ID | Scénario | Action | Résultat attendu |
+|---|---|---|---|
+| FILMS-01 | Récupérer (Découverte) | Thème avec genres, cliquer "Découverte" | Films récupérés, `used_discover: true` dans la réponse |
+| FILMS-02 | Récupérer (Mots-clés) | Cliquer "Mots-clés" | Films récupérés depuis `/search/movie` |
+| FILMS-03 | Thème sans genres → Découverte | Thème sans genre_ids, cliquer "Découverte" | Repli sur mots-clés automatique |
+| FILMS-04 | Supprimer un film (avant vote) | Cliquer × sur un film | Film retiré de la liste |
+| FILMS-05 | Ajouter un film (avant vote) | Cliquer "Ajouter", chercher, ajouter | Film ajouté à la liste |
+| FILMS-06 | Curation après vote | Un participant vote, admin tente de supprimer | Erreur 409, modification impossible |
+| FILMS-07 | Bandeau thème gagnant | Participant en phase film_vote | Bandeau "Thème de la soirée : …" affiché |
+
+---
+
+### Module 7 — Phase propositions
 
 | ID | Scénario | Action | Résultat attendu |
 |---|---|---|---|
@@ -80,12 +125,10 @@ pnpm test --coverage   # Couverture de code
 | PROP-05 | Film déjà proposé | Proposer un film déjà proposé | Erreur idempotente |
 | PROP-06 | Clore avec propositions | Admin : clore les propositions | Films copiés → `sp_soiree_films`, phase `film_vote` |
 | PROP-07 | Clore sans proposition | Aucune proposition, admin clore | Repli TMDb automatique, phase `film_vote` |
-| PROP-08 | Erreur de recherche | Couper le réseau, chercher | « Erreur lors de la recherche » affiché |
-| PROP-09 | Terme sans résultat | Chercher "xyzxyzxyz" | « Aucun résultat pour 'xyzxyzxyz' » |
 
 ---
 
-### Module 5 — Vote de film
+### Module 8 — Vote de film
 
 | ID | Scénario | Action | Résultat attendu |
 |---|---|---|---|
@@ -94,19 +137,21 @@ pnpm test --coverage   # Couverture de code
 | VOTE-F03 | Double vote film | Re-cliquer | Erreur « Déjà voté » |
 | VOTE-F04 | Finaliser le film | Admin : finaliser | Film gagnant affiché, phase `completed` |
 | VOTE-F05 | Finaliser à égalité | Votes égaux sur 2 films | Un film désigné au hasard |
+| VOTE-F06 | Exclusion après finalisation | Thème gagnant, règle "5 soirées" | `excluded_until` mis à jour sur le thème |
 
 ---
 
-### Module 6 — Résultats
+### Module 9 — Résultats
 
 | ID | Scénario | Action | Résultat attendu |
 |---|---|---|---|
 | RES-01 | Page résultats | Phase `completed` | Film gagnant, titre, poster affiché |
 | RES-02 | Lien bande-annonce | Cliquer sur la bande-annonce | Ouverture YouTube (si disponible) |
+| RES-03 | Soirée passée sur page cinéma | Ouvrir `/s/{slug}` | Soirée dans "Soirées passées" avec film gagnant |
 
 ---
 
-### Module 7 — Annulation et suppression
+### Module 10 — Annulation et suppression
 
 | ID | Scénario | Action | Résultat attendu |
 |---|---|---|---|
@@ -116,7 +161,7 @@ pnpm test --coverage   # Couverture de code
 
 ---
 
-### Module 8 — Configuration TMDb
+### Module 11 — Configuration TMDb
 
 | ID | Scénario | Action | Résultat attendu |
 |---|---|---|---|
@@ -127,12 +172,12 @@ pnpm test --coverage   # Couverture de code
 
 ---
 
-### Module 9 — Pages publiques
+### Module 12 — Pages publiques
 
 | ID | Scénario | Action | Résultat attendu |
 |---|---|---|---|
-| PUB-01 | Accueil | Ouvrir `/` | Page d'accueil avec champ code salle |
-| PUB-02 | Code invalide | Saisir un slug inexistant | Page soirée → message "soirée introuvable" |
+| PUB-01 | Accueil | Ouvrir `/` | Page d'accueil avec champ code cinéma |
+| PUB-02 | Code invalide | Saisir un slug inexistant | Page → 404 |
 | PUB-03 | Roadmap | Ouvrir `/roadmap` | Page chargée, issues GitHub affichées ou état vide |
 | PUB-04 | Documentation API | Ouvrir `/docs` | Page Redoc chargée avec l'OpenAPI spec |
 | PUB-05 | Footer | Vérifier tous les liens du footer | GitHub, Docs, Roadmap, Contribuer fonctionnels |
@@ -146,6 +191,8 @@ pnpm test --coverage   # Couverture de code
 - Finaliser thème sans vote (0 votes sur tous) → comportement cohérent
 - Réseau coupé pendant un vote → pas de vote fantôme en DB
 - Rechargement page pendant un vote en cours → état cohérent
+- Curation : supprimer tous les films → re-récupérer fonctionne
+- Thème exclu → absent de la liste des éligibles à la création de soirée suivante
 
 ## Outils de test recommandés
 
