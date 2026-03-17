@@ -1,6 +1,6 @@
 import Script from "next/script"
 import Link from "next/link"
-import { Film, Github, Map, BookOpen, FileCode2, Heart } from "lucide-react"
+import { Film, Github, Map, BookOpen, FileCode2, Heart, Award } from "lucide-react"
 
 const GITHUB_URL = "https://github.com/Jagostini/pixel-night"
 
@@ -58,6 +58,13 @@ export function SiteFooter() {
             <Github className="h-3 w-3" aria-hidden />
             GitHub
           </a>
+          <Link
+            href="/credits"
+            className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
+          >
+            <Award className="h-3 w-3" />
+            Crédits
+          </Link>
         </nav>
 
         {/* Bottom */}
