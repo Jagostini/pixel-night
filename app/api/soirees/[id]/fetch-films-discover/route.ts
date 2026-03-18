@@ -34,7 +34,7 @@ export async function POST(
 
   const supabase = createAdminClient()
 
-  const token = await getActiveTmdbToken(user.id)
+  const token = getActiveTmdbToken()
   if (!token) return NextResponse.json({ error: "Token TMDb non configuré" }, { status: 500 })
 
   const { data: soiree } = await supabase

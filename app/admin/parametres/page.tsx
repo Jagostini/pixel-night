@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import {
   Settings,
@@ -94,8 +93,10 @@ export default function ParametresPage() {
     setRoomEdits(edits)
   }, [salle])
 
-  useEffect(() => { loadSalle() }, [loadSalle])
-  useEffect(() => { if (salle) loadRooms() }, [salle, loadRooms])
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { void loadSalle() }, [loadSalle])
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { if (salle) void loadRooms() }, [salle, loadRooms])
 
   function handleSalleNameChange(value: string) {
     setSalleName(value)

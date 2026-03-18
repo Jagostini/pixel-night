@@ -64,7 +64,7 @@ export async function POST(
     return NextResponse.json({ error: "Des votes ont deja ete emis" }, { status: 409 })
   }
 
-  const token = await getActiveTmdbToken(user.id)
+  const token = getActiveTmdbToken()
   if (!token) return NextResponse.json({ error: "Token TMDb non configuré" }, { status: 500 })
 
   try {

@@ -11,9 +11,10 @@ export default defineConfig({
       // composants React relèvent des tests d'intégration, pas unitaires.
       include: ["lib/**/*.ts"],
       exclude: [
-        "lib/supabase/**",  // thin wrappers Supabase, pas de logique propre
-        "lib/types.ts",     // interfaces/types uniquement, aucun code runtime
-        "lib/utils.ts",     // wrapper cn() shadcn (clsx + twMerge), trivial
+        "lib/supabase/**",    // thin wrappers Supabase, pas de logique propre
+        "lib/types.ts",       // interfaces/types uniquement, aucun code runtime
+        "lib/utils.ts",       // wrapper cn() shadcn (clsx + twMerge), trivial
+        "lib/encryption.ts",  // supprimé — remplacé par TMDB_API_READ_ACCESS_TOKEN env var
       ],
       thresholds: {
         lines: 80,

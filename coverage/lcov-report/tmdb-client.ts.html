@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for voter.ts</title>
+    <title>Code coverage report for tmdb-client.ts</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="prettify.css" />
     <link rel="stylesheet" href="base.css" />
@@ -19,34 +19,34 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="index.html">All files</a> voter.ts</h1>
+        <h1><a href="index.html">All files</a> tmdb-client.ts</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">88.88% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>8/9</span>
+                <span class='fraction'>11/11</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">83.33% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>5/6</span>
+                <span class='fraction'>5/5</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>1/1</span>
+                <span class='fraction'>3/3</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>8/8</span>
+                <span class='fraction'>10/10</span>
             </div>
         
             
@@ -89,7 +89,13 @@
 <a name='L24'></a><a href='#L24'>24</a>
 <a name='L25'></a><a href='#L25'>25</a>
 <a name='L26'></a><a href='#L26'>26</a>
-<a name='L27'></a><a href='#L27'>27</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">2x</span>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -97,6 +103,14 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -104,42 +118,46 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">20x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">20x</span>
-<span class="cline-any cline-yes">20x</span>
-<span class="cline-any cline-yes">20x</span>
-<span class="cline-any cline-yes">15x</span>
-<span class="cline-any cline-yes">15x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">20x</span>
+<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">const VOTER_KEY = "sp_voter_id";
-&nbsp;
-/**
- * Get or create a persistent anonymous voter ID using localStorage.
- * This allows anonymous participants to vote once per soiree.
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/**
+ * TMDb HTTP client with concurrency control and 429 retry.
  *
- * When a salleSlug is provided, the voter ID is scoped to that salle,
- * ensuring vote isolation between different private cinemas.
- *
- * - On the server (SSR), returns an empty string since localStorage is unavailable.
- * - On the client, reads from localStorage or generates a new UUID and persists it.
- *
- * @param salleSlug - Optional salle slug to scope the voter ID per salle.
- * @returns A UUID string identifying the current voter, or "" on the server.
+ * - Limits parallel requests to MAX_CONCURRENT (protects against burst in Promise.all)
+ * - Retries once after RETRY_DELAY_MS when TMDb returns 429
  */
-export function getVoterId(salleSlug?: string): string {
-  <span class="missing-if-branch" title="if path not taken" >I</span>if (typeof window === "undefined") <span class="cstat-no" title="statement not covered" >return "";</span>
+import pLimit from "p-limit"
 &nbsp;
-  const key = salleSlug ? `${VOTER_KEY}_${salleSlug}` : VOTER_KEY;
-  let voterId = localStorage.getItem(key);
-  if (!voterId) {
-    voterId = crypto.randomUUID();
-    localStorage.setItem(key, voterId);
+const MAX_CONCURRENT = 8
+const RETRY_DELAY_MS = 1000
+const MAX_RETRIES = 2
+&nbsp;
+export const tmdbLimiter = pLimit(MAX_CONCURRENT)
+&nbsp;
+async function sleep(ms: number) {
+  return new Promise((resolve) =&gt; setTimeout(resolve, ms))
+}
+&nbsp;
+export async function tmdbFetch(
+  url: string,
+  headers: HeadersInit,
+  attempt = 1
+): Promise&lt;Response&gt; {
+  const res = await fetch(url, { headers })
+&nbsp;
+  if (res.status === 429 &amp;&amp; attempt &lt; MAX_RETRIES) {
+    await sleep(RETRY_DELAY_MS * attempt)
+    return tmdbFetch(url, headers, attempt + 1)
   }
-  return voterId;
+&nbsp;
+  return res
 }
 &nbsp;</pre></td></tr></table></pre>
 
