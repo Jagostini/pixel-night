@@ -55,7 +55,7 @@ export async function POST(
 
   const genreIds: number[] = theme?.genre_ids?.length ? theme.genre_ids : []
   const filmCount = soiree.film_count ?? 10
-  const targetCount = filmCount * 2
+  const targetCount = filmCount
 
   const scored = new Map<number, { movie: TmdbResult; score: number }>()
   let usedDiscover = false

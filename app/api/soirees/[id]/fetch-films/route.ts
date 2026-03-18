@@ -103,11 +103,11 @@ export async function POST(
     }
   }
 
-  // Sort by score descending, take film_count * 2
+  // Sort by score descending, keep exactly film_count films
   const filmCount = soiree.film_count ?? 10
   const selectedMovies = Array.from(scored.values())
     .sort((a, b) => b.score - a.score)
-    .slice(0, filmCount * 2)
+    .slice(0, filmCount)
     .map((entry) => entry.movie)
 
   if (selectedMovies.length === 0) {

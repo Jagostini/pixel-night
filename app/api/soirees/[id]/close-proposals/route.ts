@@ -119,7 +119,7 @@ export async function POST(
 
       const selectedMovies = Array.from(scored.values())
         .sort((a, b) => b.score - a.score)
-        .slice(0, (soiree.film_count ?? 10) * 2)
+        .slice(0, soiree.film_count ?? 10)
         .map((e) => e.movie)
 
       const filmsToInsert = await Promise.all(
