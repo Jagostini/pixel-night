@@ -17,6 +17,7 @@ import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { TMDB_BASE_URL, tmdbHeaders } from "@/lib/tmdb"
 import { getActiveTmdbToken } from "@/lib/tmdb-token"
+import { tmdbFetch, tmdbLimiter } from "@/lib/tmdb-client"
 
 export async function POST(
   _request: NextRequest,
@@ -89,7 +90,7 @@ export async function POST(
         .eq("id", soiree.winning_theme_id)
         .single()
 
-      const tmdbToken = await getActiveTmdbToken(user.id)
+      const tmdbToken = getActiveTmdbToken()
       if (!tmdbToken) {
         return NextResponse.json({ error: "Token TMDb non configuré" }, { status: 500 })
       }
@@ -103,7 +104,7 @@ export async function POST(
       for (const query of queries) {
         try {
           const url = `${TMDB_BASE_URL}/search/movie?query=${encodeURIComponent(query)}&language=fr-FR&page=1&include_adult=false`
-          const res = await fetch(url, { headers: tmdbHeaders(tmdbToken) })
+          const res = await tmdbFetch(url, tmdbHeaders(tmdbToken))
           const data = await res.json()
           for (const movie of data.results ?? []) {
             if (movie.adult || movie.vote_count < 50) continue
@@ -122,38 +123,40 @@ export async function POST(
         .map((e) => e.movie)
 
       const filmsToInsert = await Promise.all(
-        selectedMovies.map(async (movie) => {
-          try {
-            const detailUrl = `${TMDB_BASE_URL}/movie/${movie.id}?language=fr-FR&append_to_response=credits,videos`
-            const detailRes = await fetch(detailUrl, { headers: tmdbHeaders(tmdbToken) })
-            const detail = await detailRes.json()
-            const director = detail.credits?.crew?.find((c: { job: string }) => c.job === "Director")?.name ?? null
-            const trailer = detail.videos?.results?.find((v: { type: string; site: string; key: string }) => v.type === "Trailer" && v.site === "YouTube")
-            return {
-              soiree_id: soireeId,
-              tmdb_id: movie.id,
-              title: movie.title,
-              poster_path: movie.poster_path,
-              overview: movie.overview,
-              release_date: movie.release_date,
-              director,
-              duration: detail.runtime ?? null,
-              trailer_url: trailer ? `https://www.youtube.com/watch?v=${trailer.key}` : null,
+        selectedMovies.map((movie) =>
+          tmdbLimiter(async () => {
+            try {
+              const detailUrl = `${TMDB_BASE_URL}/movie/${movie.id}?language=fr-FR&append_to_response=credits,videos`
+              const detailRes = await tmdbFetch(detailUrl, tmdbHeaders(tmdbToken))
+              const detail = await detailRes.json()
+              const director = detail.credits?.crew?.find((c: { job: string }) => c.job === "Director")?.name ?? null
+              const trailer = detail.videos?.results?.find((v: { type: string; site: string; key: string }) => v.type === "Trailer" && v.site === "YouTube")
+              return {
+                soiree_id: soireeId,
+                tmdb_id: movie.id,
+                title: movie.title,
+                poster_path: movie.poster_path,
+                overview: movie.overview,
+                release_date: movie.release_date,
+                director,
+                duration: detail.runtime ?? null,
+                trailer_url: trailer ? `https://www.youtube.com/watch?v=${trailer.key}` : null,
+              }
+            } catch {
+              return {
+                soiree_id: soireeId,
+                tmdb_id: movie.id,
+                title: movie.title,
+                poster_path: movie.poster_path,
+                overview: movie.overview,
+                release_date: movie.release_date,
+                director: null,
+                duration: null,
+                trailer_url: null,
+              }
             }
-          } catch {
-            return {
-              soiree_id: soireeId,
-              tmdb_id: movie.id,
-              title: movie.title,
-              poster_path: movie.poster_path,
-              overview: movie.overview,
-              release_date: movie.release_date,
-              director: null,
-              duration: null,
-              trailer_url: null,
-            }
-          }
-        })
+          })
+        )
       )
 
       if (filmsToInsert.length > 0) {

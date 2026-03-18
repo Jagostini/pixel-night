@@ -20,6 +20,7 @@ import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { TMDB_BASE_URL, tmdbHeaders } from "@/lib/tmdb"
 import { getActiveTmdbToken } from "@/lib/tmdb-token"
+import { tmdbFetch, tmdbLimiter } from "@/lib/tmdb-client"
 
 interface TmdbSearchResult {
   id: number
@@ -46,7 +47,7 @@ export async function POST(
 
   const supabase = createAdminClient()
 
-  const token = await getActiveTmdbToken(user.id)
+  const token = getActiveTmdbToken()
   if (!token) {
     return NextResponse.json(
       { error: "Token TMDb non configuré" },
@@ -84,11 +85,10 @@ export async function POST(
   for (const query of queries) {
     try {
       const url = `${TMDB_BASE_URL}/search/movie?query=${encodeURIComponent(query)}&language=fr-FR&page=1&include_adult=false`
-      const res = await fetch(url, { headers: tmdbHeaders(token) })
+      const res = await tmdbFetch(url, tmdbHeaders(token))
       const data = await res.json()
 
       for (const movie of (data.results ?? []) as TmdbSearchResult[]) {
-        // Filter: skip adult content and low vote counts
         if (movie.adult) continue
         if (movie.vote_count < 50) continue
 
@@ -114,50 +114,52 @@ export async function POST(
     return NextResponse.json({ error: "Aucun film trouve sur TMDb" }, { status: 404 })
   }
 
-  // Fetch details for each film (director, runtime, trailer)
+  // Fetch details for each film (director, runtime, trailer) — concurrency capped by tmdbLimiter
   const filmsToInsert = await Promise.all(
-    selectedMovies.map(async (movie) => {
-      try {
-        const detailUrl = `${TMDB_BASE_URL}/movie/${movie.id}?language=fr-FR&append_to_response=credits,videos`
-        const detailRes = await fetch(detailUrl, { headers: tmdbHeaders(token) })
-        const detail = await detailRes.json()
+    selectedMovies.map((movie) =>
+      tmdbLimiter(async () => {
+        try {
+          const detailUrl = `${TMDB_BASE_URL}/movie/${movie.id}?language=fr-FR&append_to_response=credits,videos`
+          const detailRes = await tmdbFetch(detailUrl, tmdbHeaders(token))
+          const detail = await detailRes.json()
 
-        const director = detail.credits?.crew?.find(
-          (c: { job: string }) => c.job === "Director"
-        )?.name ?? null
+          const director = detail.credits?.crew?.find(
+            (c: { job: string }) => c.job === "Director"
+          )?.name ?? null
 
-        const trailer = detail.videos?.results?.find(
-          (v: { type: string; site: string; key: string }) =>
-            v.type === "Trailer" && v.site === "YouTube"
-        )
+          const trailer = detail.videos?.results?.find(
+            (v: { type: string; site: string; key: string }) =>
+              v.type === "Trailer" && v.site === "YouTube"
+          )
 
-        return {
-          soiree_id: soireeId,
-          tmdb_id: movie.id,
-          title: movie.title,
-          poster_path: movie.poster_path,
-          overview: movie.overview,
-          release_date: movie.release_date,
-          director,
-          duration: detail.runtime ?? null,
-          trailer_url: trailer
-            ? `https://www.youtube.com/watch?v=${trailer.key}`
-            : null,
+          return {
+            soiree_id: soireeId,
+            tmdb_id: movie.id,
+            title: movie.title,
+            poster_path: movie.poster_path,
+            overview: movie.overview,
+            release_date: movie.release_date,
+            director,
+            duration: detail.runtime ?? null,
+            trailer_url: trailer
+              ? `https://www.youtube.com/watch?v=${trailer.key}`
+              : null,
+          }
+        } catch {
+          return {
+            soiree_id: soireeId,
+            tmdb_id: movie.id,
+            title: movie.title,
+            poster_path: movie.poster_path,
+            overview: movie.overview,
+            release_date: movie.release_date,
+            director: null,
+            duration: null,
+            trailer_url: null,
+          }
         }
-      } catch {
-        return {
-          soiree_id: soireeId,
-          tmdb_id: movie.id,
-          title: movie.title,
-          poster_path: movie.poster_path,
-          overview: movie.overview,
-          release_date: movie.release_date,
-          director: null,
-          duration: null,
-          trailer_url: null,
-        }
-      }
-    })
+      })
+    )
   )
 
   const { error } = await supabase.from("sp_soiree_films").upsert(
