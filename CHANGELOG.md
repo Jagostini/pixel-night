@@ -6,7 +6,15 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
-## [Unreleased] — v1.4.0
+## [Unreleased] — v2.0.0
+
+### ⚠ Breaking Changes
+
+- **Token TMDb** : le token n'est plus stocké en base de données. Il doit être fourni via la variable d'environnement `TMDB_API_READ_ACCESS_TOKEN`. Toute instance qui utilisait la configuration via l'interface admin **perd la connexion TMDb** sans migration.
+
+**Migration requise avant mise à jour :**
+1. Définir `TMDB_API_READ_ACCESS_TOKEN` dans les variables d'environnement Vercel (si pas déjà fait)
+2. Exécuter `scripts/005_sp_remove_tmdb_token.sql` dans le SQL Editor Supabase
 
 ### Ajouté
 
