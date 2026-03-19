@@ -241,6 +241,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -273,6 +275,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -314,6 +318,8 @@ paths:
                 $ref: '#/components/schemas/Error'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           description: Aucun film trouvé sur TMDb
           content:
@@ -365,6 +371,8 @@ paths:
                 $ref: '#/components/schemas/Error'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           description: Aucun film trouvé
           content:
@@ -431,6 +439,8 @@ paths:
                 $ref: '#/components/schemas/SuccessTrue'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           description: Film introuvable sur TMDb
           content:
@@ -479,6 +489,8 @@ paths:
                 $ref: '#/components/schemas/SuccessTrue'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '409':
           description: Des votes ont déjà été enregistrés — curation impossible
           content:
@@ -527,6 +539,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -561,6 +575,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -603,6 +619,8 @@ paths:
                 $ref: '#/components/schemas/Error'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '409':
           description: Phase incorrecte — modification impossible
           content:
@@ -630,6 +648,8 @@ paths:
                 $ref: '#/components/schemas/SuccessTrue'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           description: Soirée introuvable
           content:
@@ -659,6 +679,8 @@ paths:
                 $ref: '#/components/schemas/SuccessTrue'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -787,6 +809,14 @@ components:
             $ref: '#/components/schemas/Error'
     Unauthorized:
       description: Session non authentifiée
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Non autorise
+    Forbidden:
+      description: Accès refusé — l'utilisateur n'est pas le créateur de la soirée
       content:
         application/json:
           schema:
