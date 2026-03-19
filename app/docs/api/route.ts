@@ -10,7 +10,7 @@ export async function GET() {
   <style>body { margin: 0; padding: 0; }</style>
 </head>
 <body>
-  <redoc spec-url="/openapi.yaml" hide-download-button></redoc>
+  <redoc spec-url="/api/openapi" hide-download-button></redoc>
   <script src="/redoc.standalone.js"></script>
 </body>
 </html>`

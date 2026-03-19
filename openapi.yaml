@@ -9,7 +9,7 @@ info:
 
     **Identifiant votant anonyme** : `voter_id` est un UUID généré côté client et stocké dans
     le `localStorage` du navigateur. Il permet de garantir l'unicité du vote sans compte.
-  version: 1.3.0
+  version: 2.0.0
   contact:
     url: https://github.com/Jagostini/pixel-night
   license:
