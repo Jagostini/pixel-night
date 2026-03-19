@@ -17,7 +17,7 @@ import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 
 const bodySchema = z.object({
-  proposal_duration_minutes: z.number().int().positive().optional().default(60),
+  proposal_duration_minutes: z.number().int().positive().nullable().optional(),
 })
 
 export async function POST(
@@ -34,7 +34,7 @@ export async function POST(
 
   const body = await request.json().catch(() => ({}))
   const parsed = bodySchema.safeParse(body)
-  const durationMinutes = parsed.success ? parsed.data.proposal_duration_minutes : 60
+  const durationMinutes = parsed.success ? (parsed.data.proposal_duration_minutes ?? null) : null
 
   const supabase = createAdminClient()
 
@@ -60,7 +60,9 @@ export async function POST(
     )
   }
 
-  const proposalEndsAt = new Date(Date.now() + durationMinutes * 60 * 1000).toISOString()
+  const proposalEndsAt = durationMinutes
+    ? new Date(Date.now() + durationMinutes * 60 * 1000).toISOString()
+    : null
 
   const { data: updated, error } = await supabase
     .from("sp_soirees")

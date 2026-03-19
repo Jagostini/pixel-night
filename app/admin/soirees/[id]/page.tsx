@@ -67,7 +67,7 @@ export default function SoireeControlPage() {
   const [proposals, setProposals] = useState<Array<{ id: string; tmdb_id: number; title: string; poster_path: string | null; voter_id: string }>>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
-  const [proposalDurationInput, setProposalDurationInput] = useState("1h")
+  const [proposalDurationInput, setProposalDurationInput] = useState("")
   const [filmCountInput, setFilmCountInput] = useState<number | "">(10)
   const [savingFilmCount, setSavingFilmCount] = useState(false)
   // Film curation
@@ -207,7 +207,7 @@ export default function SoireeControlPage() {
   }
 
   async function handleStartProposals() {
-    const durationMinutes = parseDurationToMinutes(proposalDurationInput) ?? 60
+    const durationMinutes = parseDurationToMinutes(proposalDurationInput) ?? null
     setActionLoading("start-proposals")
     try {
       const res = await fetch(`/api/soirees/${id}/start-proposals`, {
@@ -217,7 +217,8 @@ export default function SoireeControlPage() {
       })
       const json = await res.json()
       if (!res.ok) { toast.error(json.error); return }
-      toast.success(`Phase de propositions ouverte (${formatDurationFromMinutes(durationMinutes)}) !`)
+      const durationLabel = durationMinutes ? formatDurationFromMinutes(durationMinutes) : "illimitée"
+      toast.success(`Phase de propositions ouverte (${durationLabel}) !`)
       loadData()
     } finally { setActionLoading(null) }
   }
@@ -458,7 +459,7 @@ export default function SoireeControlPage() {
                   <Button
                     variant="outline"
                     onClick={handleStartProposals}
-                    disabled={!!actionLoading || !parseDurationToMinutes(proposalDurationInput)}
+                    disabled={!!actionLoading || (proposalDurationInput.trim() !== "" && !parseDurationToMinutes(proposalDurationInput))}
                   >
                     {actionLoading === "start-proposals" ? (
                       "Ouverture..."
@@ -472,13 +473,13 @@ export default function SoireeControlPage() {
                 </div>
                 {(() => {
                   const mins = parseDurationToMinutes(proposalDurationInput)
-                  return mins ? (
-                    <span className="text-xs text-muted-foreground ml-1">
-                      Durée : {formatDurationFromMinutes(mins)}
-                    </span>
-                  ) : proposalDurationInput.trim() ? (
-                    <span className="text-xs text-destructive ml-1">Format non reconnu</span>
-                  ) : null
+                  if (!proposalDurationInput.trim()) return (
+                    <span className="text-xs text-muted-foreground ml-1">Aucune limite — clôture manuelle.</span>
+                  )
+                  if (mins) return (
+                    <span className="text-xs text-muted-foreground ml-1">Durée : {formatDurationFromMinutes(mins)}</span>
+                  )
+                  return <span className="text-xs text-destructive ml-1">Format non reconnu</span>
                 })()}
               </div>
             )}

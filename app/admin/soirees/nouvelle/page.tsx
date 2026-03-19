@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import type { SpTheme, SpSalleRoom } from "@/lib/types"
+import { parseDurationToMinutes, formatDurationFromMinutes } from "@/lib/duration"
 
 export default function NouvelleSoireePage() {
   const router = useRouter()
@@ -22,7 +23,7 @@ export default function NouvelleSoireePage() {
   const [filmCount, setFilmCount] = useState(10)
   const [voteDuration, setVoteDuration] = useState<string>("")
   const [proposalEnabled, setProposalEnabled] = useState(false)
-  const [proposalDuration, setProposalDuration] = useState<string>("60")
+  const [proposalDuration, setProposalDuration] = useState<string>("")
   const [saving, setSaving] = useState(false)
   const [eligibleThemes, setEligibleThemes] = useState<SpTheme[]>([])
 
@@ -93,7 +94,12 @@ export default function NouvelleSoireePage() {
       return
     }
 
-    const durationMinutes = voteDuration ? parseInt(voteDuration, 10) : null
+    const durationMinutes = voteDuration.trim() ? parseDurationToMinutes(voteDuration) : null
+    if (voteDuration.trim() && durationMinutes === null) {
+      toast.error("Format de durée de vote non reconnu (ex: 30min, 1h, 2 jours)")
+      setSaving(false)
+      return
+    }
     const themeVoteEnds = durationMinutes
       ? new Date(Date.now() + durationMinutes * 60 * 1000).toISOString()
       : null
@@ -233,17 +239,24 @@ export default function NouvelleSoireePage() {
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="vote-duration">
-                Duree du vote (minutes, vide = illimite)
-              </Label>
+              <Label htmlFor="vote-duration">Durée du vote (vide = illimité)</Label>
               <Input
                 id="vote-duration"
-                type="number"
-                min={1}
+                type="text"
                 value={voteDuration}
                 onChange={(e) => setVoteDuration(e.target.value)}
-                placeholder="ex: 30"
+                placeholder="ex: 30min, 1h, 2 jours"
               />
+              {(() => {
+                const mins = parseDurationToMinutes(voteDuration)
+                if (!voteDuration.trim()) return (
+                  <p className="text-xs text-muted-foreground">Aucune limite de temps.</p>
+                )
+                if (mins) return (
+                  <p className="text-xs text-muted-foreground">Durée : {formatDurationFromMinutes(mins)}</p>
+                )
+                return <p className="text-xs text-destructive">Format non reconnu</p>
+              })()}
             </div>
 
             <div className="rounded-lg border p-4 flex flex-col gap-3">
@@ -267,8 +280,18 @@ export default function NouvelleSoireePage() {
                     onChange={(e) => setProposalDuration(e.target.value)}
                     placeholder="ex: 2 jours, 1h30, 30min"
                   />
+                  {(() => {
+                    const mins = parseDurationToMinutes(proposalDuration)
+                    if (!proposalDuration.trim()) return (
+                      <p className="text-xs text-muted-foreground">Aucune limite — l&apos;organisateur clôture manuellement.</p>
+                    )
+                    if (mins) return (
+                      <p className="text-xs text-muted-foreground">Durée : {formatDurationFromMinutes(mins)}</p>
+                    )
+                    return <p className="text-xs text-destructive">Format non reconnu</p>
+                  })()}
                   <p className="text-xs text-muted-foreground">
-                    Modifiable lors du lancement des propositions
+                    Modifiable lors du lancement des propositions.
                   </p>
                 </div>
               )}
