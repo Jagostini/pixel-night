@@ -50,6 +50,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 - **Rendu Markdown dans la documentation** : les titres, tableaux, listes, blocs de code et diagrammes ASCII s'affichent maintenant correctement. Cause : le plugin `@tailwindcss/typography` n'était pas importé dans le bon fichier CSS, et la variante `dark:prose-invert` n'était pas activée (ajout de `class="dark"` sur `<html>`).
 
+### Corrigé
+
+- **Rendu Markdown dans la documentation** : les titres, tableaux, listes, blocs de code et diagrammes ASCII s'affichent maintenant correctement. Cause : le plugin `@tailwindcss/typography` n'était pas importé dans le bon fichier CSS, et la variante `dark:prose-invert` n'était pas activée (ajout de `class="dark"` sur `<html>`).
+
 ### Supprimé
 
 - Route `POST /api/tmdb/save-token` (configuration par utilisateur supprimée).
