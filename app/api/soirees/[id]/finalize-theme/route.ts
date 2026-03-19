@@ -19,9 +19,16 @@ export async function POST(
   // Fetch the soiree to know whether proposals are enabled
   const { data: soiree } = await supabase
     .from("sp_soirees")
-    .select("proposal_enabled")
+    .select("proposal_enabled, created_by")
     .eq("id", soireeId)
     .single()
+
+  if (!soiree) {
+    return NextResponse.json({ error: "Soiree non trouvee" }, { status: 404 })
+  }
+  if (soiree.created_by !== user.id) {
+    return NextResponse.json({ error: "Non autorise" }, { status: 403 })
+  }
 
   // Get all themes for this soiree, ordered by votes desc
   const { data: themes } = await supabase

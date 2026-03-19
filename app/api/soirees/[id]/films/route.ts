@@ -32,6 +32,15 @@ export async function DELETE(
 
   const supabase = createAdminClient()
 
+  const { data: soireeForDelete } = await supabase
+    .from("sp_soirees")
+    .select("created_by")
+    .eq("id", soireeId)
+    .single()
+
+  if (!soireeForDelete) return NextResponse.json({ error: "Soiree non trouvee" }, { status: 404 })
+  if (soireeForDelete.created_by !== user.id) return NextResponse.json({ error: "Non autorise" }, { status: 403 })
+
   if (!(await checkNoVotes(supabase, soireeId))) {
     return NextResponse.json({ error: "Des votes ont deja ete emis" }, { status: 409 })
   }
@@ -59,6 +68,15 @@ export async function POST(
   if (!tmdb_id) return NextResponse.json({ error: "tmdb_id requis" }, { status: 400 })
 
   const supabase = createAdminClient()
+
+  const { data: soireeForPost } = await supabase
+    .from("sp_soirees")
+    .select("created_by")
+    .eq("id", soireeId)
+    .single()
+
+  if (!soireeForPost) return NextResponse.json({ error: "Soiree non trouvee" }, { status: 404 })
+  if (soireeForPost.created_by !== user.id) return NextResponse.json({ error: "Non autorise" }, { status: 403 })
 
   if (!(await checkNoVotes(supabase, soireeId))) {
     return NextResponse.json({ error: "Des votes ont deja ete emis" }, { status: 409 })

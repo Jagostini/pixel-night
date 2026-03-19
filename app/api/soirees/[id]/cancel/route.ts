@@ -27,12 +27,15 @@ export async function POST(
 
   const { data: soiree } = await supabase
     .from("sp_soirees")
-    .select("phase")
+    .select("phase, created_by")
     .eq("id", soireeId)
     .single()
 
   if (!soiree) {
     return NextResponse.json({ error: "Soiree non trouvee" }, { status: 404 })
+  }
+  if (soiree.created_by !== user.id) {
+    return NextResponse.json({ error: "Non autorise" }, { status: 403 })
   }
   if (soiree.phase === "completed" || soiree.phase === "cancelled") {
     return NextResponse.json(

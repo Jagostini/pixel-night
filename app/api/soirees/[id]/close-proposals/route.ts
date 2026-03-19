@@ -42,6 +42,9 @@ export async function POST(
   if (!soiree) {
     return NextResponse.json({ error: "Soiree non trouvee" }, { status: 404 })
   }
+  if (soiree.created_by !== user.id) {
+    return NextResponse.json({ error: "Non autorise" }, { status: 403 })
+  }
   if (soiree.phase !== "film_proposal") {
     return NextResponse.json(
       { error: "La soiree n'est pas en phase film_proposal" },

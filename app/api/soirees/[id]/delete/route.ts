@@ -25,6 +25,19 @@ export async function DELETE(
 
   const supabase = createAdminClient()
 
+  const { data: soiree } = await supabase
+    .from("sp_soirees")
+    .select("created_by")
+    .eq("id", soireeId)
+    .single()
+
+  if (!soiree) {
+    return NextResponse.json({ error: "Soiree non trouvee" }, { status: 404 })
+  }
+  if (soiree.created_by !== user.id) {
+    return NextResponse.json({ error: "Non autorise" }, { status: 403 })
+  }
+
   const { error } = await supabase
     .from("sp_soirees")
     .delete()
