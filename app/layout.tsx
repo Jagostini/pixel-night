@@ -29,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="fr">
+    <html lang="fr" className="dark">
       <body className="font-sans antialiased bg-background text-foreground">
         <div className="flex min-h-screen flex-col">
           <SiteHeader />

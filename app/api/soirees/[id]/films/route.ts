@@ -66,6 +66,10 @@ export async function POST(
 
   const { tmdb_id } = await request.json()
   if (!tmdb_id) return NextResponse.json({ error: "tmdb_id requis" }, { status: 400 })
+  const numericTmdbId = parseInt(String(tmdb_id), 10)
+  if (!Number.isInteger(numericTmdbId) || numericTmdbId <= 0) {
+    return NextResponse.json({ error: "tmdb_id invalide" }, { status: 400 })
+  }
 
   const supabase = createAdminClient()
 
@@ -86,7 +90,7 @@ export async function POST(
   if (!token) return NextResponse.json({ error: "Token TMDb non configuré" }, { status: 500 })
 
   try {
-    const detailUrl = `${TMDB_BASE_URL}/movie/${tmdb_id}?language=fr-FR&append_to_response=credits,videos`
+    const detailUrl = `${TMDB_BASE_URL}/movie/${numericTmdbId}?language=fr-FR&append_to_response=credits,videos`
     const detail = await fetch(detailUrl, { headers: tmdbHeaders(token) }).then((r) => r.json())
 
     if (!detail.id) return NextResponse.json({ error: "Film non trouve sur TMDb" }, { status: 404 })
