@@ -41,6 +41,10 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 - **Suppression de `lib/encryption.ts`** et de la colonne `tmdb_token_encrypted` : aucun secret chiffré stocké en base.
 - **Patch CVE-2026-26278** (high, `fast-xml-parser` via `redoc`) via override pnpm `>=5.5.6`.
 
+### Corrigé
+
+- **Rendu Markdown dans la documentation** : les titres, tableaux, listes, blocs de code et diagrammes ASCII s'affichent maintenant correctement. Cause : le plugin `@tailwindcss/typography` n'était pas importé dans le bon fichier CSS, et la variante `dark:prose-invert` n'était pas activée (ajout de `class="dark"` sur `<html>`).
+
 ### Supprimé
 
 - Route `POST /api/tmdb/save-token` (configuration par utilisateur supprimée).
