@@ -1,18 +1,22 @@
 /**
- * POST /api/soirees/[id]/cancel
+ * PATCH /api/soirees/[id]/update-settings
  *
- * Annule une soirée en cours en passant sa phase à "cancelled".
- * Disponible tant que la soirée n'est pas terminée ou déjà annulée.
+ * Updates editable settings on a soirée before the film vote phase.
+ * Currently supports: film_count
+ *
+ * Allowed phases: planned, theme_vote, film_proposal
  *
  * @requires Auth: organisateur session
- * @returns { success: true } ou { error: string }
+ * @returns { success: true } or { error: string }
  */
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 
-export async function POST(
-  _request: NextRequest,
+const EDITABLE_PHASES = ["planned", "theme_vote", "film_proposal"]
+
+export async function PATCH(
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: soireeId } = await params
@@ -21,6 +25,16 @@ export async function POST(
   const { data: { user } } = await authSupabase.auth.getUser()
   if (!user) {
     return NextResponse.json({ error: "Non autorise" }, { status: 401 })
+  }
+
+  const body = await request.json()
+  const filmCount = body.film_count
+
+  if (typeof filmCount !== "number" || !Number.isInteger(filmCount) || filmCount < 1 || filmCount > 50) {
+    return NextResponse.json(
+      { error: "film_count doit être un entier entre 1 et 50" },
+      { status: 400 }
+    )
   }
 
   const supabase = createAdminClient()
@@ -34,19 +48,21 @@ export async function POST(
   if (!soiree) {
     return NextResponse.json({ error: "Soiree non trouvee" }, { status: 404 })
   }
+
   if (soiree.created_by !== user.id) {
     return NextResponse.json({ error: "Non autorise" }, { status: 403 })
   }
-  if (soiree.phase === "completed" || soiree.phase === "cancelled") {
+
+  if (!EDITABLE_PHASES.includes(soiree.phase)) {
     return NextResponse.json(
-      { error: "Impossible d'annuler une soiree terminee ou deja annulee" },
-      { status: 400 }
+      { error: "Le nombre de films ne peut plus être modifié à ce stade" },
+      { status: 409 }
     )
   }
 
   const { error } = await supabase
     .from("sp_soirees")
-    .update({ phase: "cancelled" })
+    .update({ film_count: filmCount })
     .eq("id", soireeId)
 
   if (error) {

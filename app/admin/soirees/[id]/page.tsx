@@ -67,7 +67,9 @@ export default function SoireeControlPage() {
   const [proposals, setProposals] = useState<Array<{ id: string; tmdb_id: number; title: string; poster_path: string | null; voter_id: string }>>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
-  const [proposalDurationInput, setProposalDurationInput] = useState("1h")
+  const [proposalDurationInput, setProposalDurationInput] = useState("")
+  const [filmCountInput, setFilmCountInput] = useState<number | "">(10)
+  const [savingFilmCount, setSavingFilmCount] = useState(false)
   // Film curation
   const [addFilmOpen, setAddFilmOpen] = useState(false)
   const [filmSearch, setFilmSearch] = useState("")
@@ -93,6 +95,7 @@ export default function SoireeControlPage() {
     setSoiree(soireeRes.data)
     setThemes((themesRes.data as SoireeThemeWithJoin[]) ?? [])
     setFilms((filmsRes.data as SpSoireeFilm[]) ?? [])
+    if (soireeRes.data?.film_count) setFilmCountInput(soireeRes.data.film_count)
 
     if (soireeRes.data?.phase === "film_proposal") {
       const proposalsRes = await fetch(`/api/soirees/${id}/proposals`)
@@ -109,6 +112,23 @@ export default function SoireeControlPage() {
     const interval = setInterval(loadData, 5000)
     return () => clearInterval(interval)
   }, [loadData])
+
+  async function handleSaveFilmCount() {
+    const count = Number(filmCountInput)
+    if (!count || count < 1) { toast.error("Nombre invalide"); return }
+    setSavingFilmCount(true)
+    try {
+      const res = await fetch(`/api/soirees/${id}/update-settings`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ film_count: count }),
+      })
+      const json = await res.json()
+      if (!res.ok) { toast.error(json.error); return }
+      toast.success(`Nombre de films mis à jour : ${count}`)
+      loadData()
+    } finally { setSavingFilmCount(false) }
+  }
 
   async function handleFinalizeTheme() {
     setActionLoading("finalize-theme")
@@ -187,7 +207,7 @@ export default function SoireeControlPage() {
   }
 
   async function handleStartProposals() {
-    const durationMinutes = parseDurationToMinutes(proposalDurationInput) ?? 60
+    const durationMinutes = parseDurationToMinutes(proposalDurationInput) ?? null
     setActionLoading("start-proposals")
     try {
       const res = await fetch(`/api/soirees/${id}/start-proposals`, {
@@ -197,7 +217,8 @@ export default function SoireeControlPage() {
       })
       const json = await res.json()
       if (!res.ok) { toast.error(json.error); return }
-      toast.success(`Phase de propositions ouverte (${formatDurationFromMinutes(durationMinutes)}) !`)
+      const durationLabel = durationMinutes ? formatDurationFromMinutes(durationMinutes) : "illimitée"
+      toast.success(`Phase de propositions ouverte (${durationLabel}) !`)
       loadData()
     } finally { setActionLoading(null) }
   }
@@ -261,6 +282,8 @@ export default function SoireeControlPage() {
   const totalThemeVotes = themes.reduce((sum, t) => sum + t.vote_count, 0)
   const totalFilmVotes = films.reduce((sum, f) => sum + f.vote_count, 0)
   const canCancel = phase !== "completed" && phase !== "cancelled"
+  const canEditFilmCount = phase === "planned" || phase === "theme_vote" || phase === "film_proposal"
+  const filmCountChanged = Number(filmCountInput) !== soiree.film_count
 
   return (
     <div>
@@ -385,6 +408,29 @@ export default function SoireeControlPage() {
             <CardTitle className="text-base">Actions</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-3">
+            {canEditFilmCount && (
+              <div className="flex items-center gap-2 w-full border-b border-border pb-3 mb-1">
+                <Film className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="text-sm text-muted-foreground shrink-0">Films au vote :</span>
+                <Input
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={filmCountInput}
+                  onChange={(e) => setFilmCountInput(e.target.value === "" ? "" : parseInt(e.target.value, 10))}
+                  className="w-20 h-8 text-sm"
+                  disabled={savingFilmCount}
+                />
+                <Button
+                  size="sm"
+                  className="h-8"
+                  onClick={handleSaveFilmCount}
+                  disabled={savingFilmCount || !filmCountChanged || !filmCountInput}
+                >
+                  {savingFilmCount ? "..." : "Enregistrer"}
+                </Button>
+              </div>
+            )}
             {phase === "theme_vote" && (
               <Button
                 onClick={handleFinalizeTheme}
@@ -413,7 +459,7 @@ export default function SoireeControlPage() {
                   <Button
                     variant="outline"
                     onClick={handleStartProposals}
-                    disabled={!!actionLoading || !parseDurationToMinutes(proposalDurationInput)}
+                    disabled={!!actionLoading || (proposalDurationInput.trim() !== "" && !parseDurationToMinutes(proposalDurationInput))}
                   >
                     {actionLoading === "start-proposals" ? (
                       "Ouverture..."
@@ -427,13 +473,13 @@ export default function SoireeControlPage() {
                 </div>
                 {(() => {
                   const mins = parseDurationToMinutes(proposalDurationInput)
-                  return mins ? (
-                    <span className="text-xs text-muted-foreground ml-1">
-                      Durée : {formatDurationFromMinutes(mins)}
-                    </span>
-                  ) : proposalDurationInput.trim() ? (
-                    <span className="text-xs text-destructive ml-1">Format non reconnu</span>
-                  ) : null
+                  if (!proposalDurationInput.trim()) return (
+                    <span className="text-xs text-muted-foreground ml-1">Aucune limite — clôture manuelle.</span>
+                  )
+                  if (mins) return (
+                    <span className="text-xs text-muted-foreground ml-1">Durée : {formatDurationFromMinutes(mins)}</span>
+                  )
+                  return <span className="text-xs text-destructive ml-1">Format non reconnu</span>
                 })()}
               </div>
             )}

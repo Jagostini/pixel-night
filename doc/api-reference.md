@@ -25,7 +25,7 @@ La documentation interactive complète est disponible sur **[/docs](/docs)** —
 | `GET` | `/api/tmdb/search?query=` | Non | Rechercher des films |
 | `GET` | `/api/tmdb/movie/{tmdbId}` | Non | Détails d'un film |
 | `GET` | `/api/tmdb/status` | Non | Statut config TMDb |
-| `POST` | `/api/tmdb/save-token` | ✅ | Sauvegarder le token TMDb |
+| `PATCH` | `/api/soirees/{id}/update-settings` | ✅ | Mettre à jour le nombre de films avant le vote |
 
 ## Authentification
 

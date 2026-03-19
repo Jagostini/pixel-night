@@ -58,9 +58,9 @@ pnpm install
    - `scripts/003_sp_profile_trigger.sql` — Configure le trigger de profil auto
    - `scripts/004_sp_add_projection_proposals.sql` — Propositions de films + champ durée
    - `scripts/005_sp_add_cancelled_phase.sql` — Phase « annulée »
-   - `scripts/005_sp_add_tmdb_token.sql` — Colonne token TMDb chiffré dans `sp_salles`
    - `scripts/006_sp_add_salles.sql` — Table `sp_salles`
    - `scripts/007_sp_grants_salles.sql` — Grants pour les nouvelles tables
+   - `scripts/005_sp_remove_tmdb_token.sql` — Supprime la colonne `tmdb_token_encrypted`
 
 ### 4. Configurer TMDb
 
@@ -113,8 +113,8 @@ pixel-night/
 │   ├── supabase/           # Clients Supabase (server, client, admin)
 │   ├── types.ts            # Types TypeScript partagés
 │   ├── tmdb.ts             # Utilitaires TMDb (URLs d'images, headers)
-│   ├── tmdb-token.ts       # Résolution du token actif (env var ou DB chiffré)
-│   ├── encryption.ts       # Chiffrement AES-256-GCM via Web Crypto API
+│   ├── tmdb-token.ts       # Résolution du token actif (env var uniquement)
+│   ├── tmdb-client.ts      # Client TMDb avec rate limiting (p-limit, retry 429)
 │   ├── duration.ts         # Parseur durée texte → minutes
 │   └── voter.ts            # Gestion de l'ID votant anonyme (localStorage)
 ├── __tests__/              # Tests unitaires (Vitest)
@@ -235,7 +235,7 @@ Toutes les tables sont préfixées `sp_` (Soirée Pixelisée).
 | `sp_soiree_film_proposals` | Propositions de films par les participants |
 | `sp_theme_votes` | Votes de thème des participants |
 | `sp_film_votes` | Votes de film des participants |
-| `sp_salles` | Salles de cinéma (contient le token TMDb chiffré) |
+| `sp_salles` | Salles de cinéma (exclusion, capacité) |
 
 Les scripts SQL sont dans `scripts/` et doivent être exécutés dans l'ordre numérique.
 
@@ -250,10 +250,7 @@ Si vous ajoutez ou modifiez des tables, créez un nouveau script SQL numéroté 
 | `NEXT_PUBLIC_SUPABASE_URL` | ✅ | URL de votre projet Supabase | Dashboard Supabase → Settings → API |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | Clé publique Supabase | Dashboard Supabase → Settings → API |
 | `SUPABASE_SERVICE_ROLE_KEY` | ✅ | Clé de service (**ne jamais exposer côté client**) | Dashboard Supabase → Settings → API |
-| `TMDB_API_READ_ACCESS_TOKEN` | ⚡ | Token TMDb en clair (prioritaire sur la DB) | themoviedb.org → Settings → API |
-| `ENCRYPTION_KEY` | ⚡ | Clé AES-256 en hex (64 chars) pour chiffrer le token TMDb en DB | `openssl rand -hex 32` |
-
-> ⚡ Au moins une des deux options TMDb doit être configurée. En production, préférez stocker le token chiffré en base et ne définir que `ENCRYPTION_KEY` dans Vercel. Le token est alors saisi dans l'interface admin sous **Paramètres**.
+| `TMDB_API_READ_ACCESS_TOKEN` | ✅ | Token TMDb (API Read Access Token) | themoviedb.org → Settings → API |
 
 ### Tests
 
@@ -264,9 +261,32 @@ pnpm test
 Les tests unitaires couvrent :
 - `lib/tmdb.ts` — helpers d'URL et headers
 - `lib/duration.ts` — parseur durée texte ↔ minutes
-- `lib/encryption.ts` — chiffrement / déchiffrement AES-256-GCM
-- `lib/tmdb-token.ts` — résolution du token actif (env var vs DB)
+- `lib/tmdb-token.ts` — résolution du token actif (env var)
+- `lib/tmdb-client.ts` — rate limiting, retry sur 429
+- `lib/voter.ts` — ID anonyme, comportement SSR
+- `lib/theme-catalog.ts` — intégrité du catalogue
 - API `finalize-theme` / `finalize-film` — logique de départage
+- API `update-settings` — phase gate, validation, ownership
+- API `start-proposals` — calcul de deadline nullable
+
+---
+
+## Processus de release
+
+Les releases sont gérées automatiquement par **release-please** — aucune action manuelle n'est requise.
+
+### Comment ça fonctionne
+
+1. Tes commits sur `main` (via PR) doivent respecter [Conventional Commits](https://www.conventionalcommits.org/) :
+   ```
+   feat: ajouter X       → bump mineur
+   fix: corriger Y       → bump patch
+   feat!: breaking Z     → bump majeur
+   ```
+2. Après chaque merge, release-please ouvre automatiquement une PR **`chore: release vX.Y.Z`** qui met à jour `CHANGELOG.md` et `package.json`.
+3. Quand cette PR est mergée, release-please crée le tag git et la GitHub Release.
+
+> Ne pas modifier `CHANGELOG.md` manuellement après la mise en place de release-please — il en est le seul auteur.
 
 ---
 

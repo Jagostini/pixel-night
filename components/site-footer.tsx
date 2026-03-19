@@ -1,10 +1,12 @@
 import Script from "next/script"
 import Link from "next/link"
-import { Film, Github, Map, BookOpen, FileCode2, Heart } from "lucide-react"
+import { Film, Github, Map, BookOpen, FileCode2, Heart, Award, Scale, ShieldCheck } from "lucide-react"
+import { getBuildBadge } from "@/lib/build-info"
 
 const GITHUB_URL = "https://github.com/Jagostini/pixel-night"
 
 export function SiteFooter() {
+  const badge = getBuildBadge()
   return (
     <footer className="border-t border-border py-8">
       <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4">
@@ -58,12 +60,40 @@ export function SiteFooter() {
             <Github className="h-3 w-3" aria-hidden />
             GitHub
           </a>
+          <Link
+            href="/credits"
+            className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
+          >
+            <Award className="h-3 w-3" />
+            Crédits
+          </Link>
+          <Link
+            href="/legal"
+            className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
+          >
+            <Scale className="h-3 w-3" />
+            Mentions légales
+          </Link>
+          <Link
+            href="/privacy"
+            className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
+          >
+            <ShieldCheck className="h-3 w-3" />
+            Confidentialité
+          </Link>
         </nav>
 
         {/* Bottom */}
-        <p className="text-center text-xs text-muted-foreground sm:text-left">
-          MIT + Commons Clause — Open source, contributions bienvenues.
-        </p>
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-center text-xs text-muted-foreground sm:text-left">
+            MIT + Commons Clause — Open source, contributions bienvenues.
+          </p>
+          {badge && (
+            <span className="text-center text-xs text-muted-foreground/60 sm:text-right">
+              {badge}
+            </span>
+          )}
+        </div>
       </div>
 
       <Script

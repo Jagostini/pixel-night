@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest"
+import { describe, it, expect, beforeEach, vi } from "vitest"
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -64,5 +64,11 @@ describe("getVoterId", () => {
     const global = getVoterId()
     const scoped = getVoterId("my-salle")
     expect(global).not.toBe(scoped)
+  })
+
+  it("returns empty string in SSR environment (no window)", () => {
+    vi.stubGlobal("window", undefined)
+    expect(getVoterId()).toBe("")
+    vi.unstubAllGlobals()
   })
 })

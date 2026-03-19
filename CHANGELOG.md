@@ -6,6 +6,63 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [Unreleased] — v2.0.0
+
+### ⚠ Breaking Changes
+
+- **Token TMDb** : le token n'est plus stocké en base de données. Il doit être fourni via la variable d'environnement `TMDB_API_READ_ACCESS_TOKEN`. Toute instance qui utilisait la configuration via l'interface admin **perd la connexion TMDb** sans migration.
+
+**Migration requise avant mise à jour :**
+1. Définir `TMDB_API_READ_ACCESS_TOKEN` dans les variables d'environnement Vercel (si pas déjà fait)
+2. Exécuter `scripts/005_sp_remove_tmdb_token.sql` dans le SQL Editor Supabase
+
+### Ajouté
+
+- **Page de crédits TMDb** (`/credits`) : logo officiel, mention légale requise par TMDb, section licence MIT.
+- **Lien « Crédits »** dans le footer (icône Award).
+- **Champ `film_count` modifiable** après création de la soirée (phases `planned`, `theme_vote`, `film_proposal`) via `PATCH /api/soirees/[id]/update-settings`.
+- **Durée de vote en format lisible** (`1h`, `2 jours`, `30min`, vide = illimité) — même expérience que le champ durée des propositions.
+- **Durée des propositions nullable** : champ vide = pas de délai automatique (clôture manuelle uniquement).
+- **Client TMDb centralisé** (`lib/tmdb-client.ts`) : concurrence limitée à 8 requêtes parallèles (`p-limit`), retry automatique sur HTTP 429 avec back-off exponentiel.
+- **Badge de version dans le footer** : affiche `v1.x.x` en production et `build #abc1234` en preview Vercel (masqué en local).
+- **Pages légales** : `/legal` (mentions légales LCEN) et `/privacy` (politique de confidentialité RGPD) avec liens dans le footer.
+- **Vercel Speed Insights** : collecte des Core Web Vitals (LCP, FID, CLS) pour le suivi des performances en production.
+- **CodeQL** : analyse statique de sécurité (GitHub Code Scanning) sur chaque PR et push vers `main`.
+
+### Modifié
+
+- **Gestion du token TMDb simplifiée** : le token est désormais lu exclusivement depuis la variable d'environnement `TMDB_API_READ_ACCESS_TOKEN`. La configuration par utilisateur (stockage chiffré en base) a été supprimée.
+- **Correction du comptage de films** : `fetch-films`, `fetch-films-discover` et `close-proposals` insèrent maintenant exactement `film_count` films (corrigé depuis `film_count × 2`).
+- **Interface Admin — Paramètres** : la carte de configuration du token TMDb a été retirée (token géré uniquement côté serveur).
+
+### Sécurité
+
+- **Vérification de propriété (403)** ajoutée sur toutes les routes de mutation de soirée : `cancel`, `delete`, `finalize-theme`, `finalize-film`, `fetch-films`, `fetch-films-discover`, `films` (DELETE + POST), `start-proposals`, `close-proposals`, `update-settings` — seul le créateur de la soirée peut effectuer ces actions.
+- **Suppression de `lib/encryption.ts`** et de la colonne `tmdb_token_encrypted` : aucun secret chiffré stocké en base.
+- **Patch CVE-2026-26278** (high, `fast-xml-parser` via `redoc`) via override pnpm `>=5.5.6`.
+
+### Supprimé
+
+- Route `POST /api/tmdb/save-token` (configuration par utilisateur supprimée).
+- Route `GET /api/tmdb/test`.
+- `lib/encryption.ts` et `__tests__/lib/encryption.test.ts`.
+
+### Tests
+
+- Suite portée à **139 tests** — couverture 100 % sur tous les modules `lib/`.
+- Ajout : `__tests__/lib/tmdb-client.test.ts` (5 tests : succès, retry 429, limite retry, pas de retry 500, concurrence limiter).
+- Ajout : `__tests__/lib/build-info.test.ts` (5 tests : production, preview avec/sans SHA, development, local).
+- Ajout : `__tests__/api/update-settings.test.ts` (9 tests : phase gate, validation `film_count`, ownership).
+- Ajout : `__tests__/api/start-proposals.test.ts` (5 tests : calcul deadline nullable).
+- Mise à jour : `__tests__/lib/tmdb-token.test.ts`, `__tests__/lib/voter.test.ts` (couverture SSR).
+
+### Migration requise
+
+- Exécuter `scripts/005_sp_remove_tmdb_token.sql` pour supprimer la colonne `tmdb_token_encrypted` de `sp_salles`.
+- Configurer `TMDB_API_READ_ACCESS_TOKEN` dans les variables d'environnement Vercel si ce n'est pas déjà fait.
+
+---
+
 ## [1.3.0] — 2026-03-16
 
 **Commits** : [`5b3e529`](https://github.com/Jagostini/pixel-night/commit/5b3e529) → [`d697313`](https://github.com/Jagostini/pixel-night/commit/d697313)

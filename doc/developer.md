@@ -31,7 +31,7 @@ pixel-night/
 │   ├── admin/              # Pages admin (auth requise)
 │   │   ├── soirees/        # Liste + détail soirée
 │   │   ├── themes/         # Catalogue de thèmes + import
-│   │   └── parametres/     # Config token TMDb, cinéma, salles, exclusion
+│   │   └── parametres/     # Config cinéma, salles, exclusion
 │   ├── api/
 │   │   ├── soirees/[id]/   # Votes, phases, propositions, curation films
 │   │   └── tmdb/           # Proxy TMDb, token, statut
@@ -49,10 +49,11 @@ pixel-night/
 │   │   └── admin.ts        # createAdminClient (service role, contourne RLS)
 │   ├── types.ts            # Types partagés (SoireePhase, SpSoiree, ExclusionMode, etc.)
 │   ├── tmdb.ts             # tmdbPoster(), tmdbBackdrop(), tmdbHeaders()
-│   ├── tmdb-token.ts       # getActiveTmdbToken() — env var ou DB chiffré
+│   ├── tmdb-token.ts       # getActiveTmdbToken() — env var uniquement
 │   ├── theme-catalog.ts    # THEME_CATALOG, TMDB_GENRES, TMDB_GENRE_LIST
-│   ├── encryption.ts       # encrypt() / decrypt() AES-256-GCM
+│   ├── tmdb-client.ts      # Rate limiting TMDb (p-limit, retry 429)
 │   ├── duration.ts         # parseDurationToMinutes() / formatDurationFromMinutes()
+│   ├── build-info.ts       # getBuildBadge() — version prod / SHA preview / null local
 │   └── voter.ts            # getVoterId() — ID anonyme localStorage
 ├── __tests__/
 │   ├── lib/                # Tests unitaires des utilitaires
@@ -105,7 +106,7 @@ pnpm test --ui    # Interface Vitest (mode watch)
 ### `lib/tmdb-token.ts`
 
 ```typescript
-// Résout le token TMDb actif (env var en priorité, sinon DB chiffrée)
+// Résout le token TMDb actif (env var uniquement)
 const token = await getActiveTmdbToken()
 if (!token) return NextResponse.json({ error: "Token TMDb non configuré" }, { status: 500 })
 
@@ -140,14 +141,6 @@ parseDurationToMinutes("60")       // → 60
 // Formater pour affichage
 formatDurationFromMinutes(90)      // → "1h30"
 formatDurationFromMinutes(2880)    // → "2j"
-```
-
-### `lib/encryption.ts`
-
-```typescript
-// AES-256-GCM — requiert une clé hex 64 chars (32 octets)
-const encrypted = await encrypt("my-token", process.env.ENCRYPTION_KEY!)
-const plain = await decrypt(encrypted, process.env.ENCRYPTION_KEY!)
 ```
 
 ### `lib/voter.ts`
@@ -190,7 +183,7 @@ Les tests unitaires sont dans `__tests__/` et utilisent **Vitest 4** avec l'envi
 
 ```bash
 pnpm test                    # Run all tests
-pnpm test lib/encryption     # Run specific test file
+pnpm test lib/tmdb-token     # Run specific test file
 ```
 
 ### Modules testés
@@ -199,8 +192,7 @@ pnpm test lib/encryption     # Run specific test file
 |---|---|
 | `__tests__/lib/tmdb.test.ts` | `tmdbPoster()`, `tmdbBackdrop()`, `tmdbHeaders()` |
 | `__tests__/lib/duration.test.ts` | `parseDurationToMinutes()`, `formatDurationFromMinutes()`, formats divers |
-| `__tests__/lib/encryption.test.ts` | `encrypt()`, `decrypt()`, round-trips, mauvaise clé, tampering |
-| `__tests__/lib/tmdb-token.test.ts` | `getActiveTmdbToken()` — env var, DB fallback, erreurs decrypt/Supabase |
+| `__tests__/lib/tmdb-token.test.ts` | `getActiveTmdbToken()` — env var, cas non configuré |
 | `__tests__/lib/theme-catalog.test.ts` | Intégrité du catalogue (30 thèmes, genre_ids valides, TMDB_GENRE_LIST trié) |
 | `__tests__/api/finalize-theme.test.ts` | Logique de départage à égalité (tirage au sort) |
 | `__tests__/api/finalize-film.test.ts` | Logique de départage à égalité |
@@ -218,7 +210,7 @@ vi.mock("@/lib/supabase/admin", () => ({
 }))
 
 // Stubber une variable d'env
-vi.stubEnv("ENCRYPTION_KEY", "a".repeat(64))
+vi.stubEnv("TMDB_API_READ_ACCESS_TOKEN", "my-test-token")
 ```
 
 ## ESLint

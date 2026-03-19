@@ -23,8 +23,7 @@ Dans **Project Settings → Environment Variables** :
 | `NEXT_PUBLIC_SUPABASE_URL` | Production, Preview, Development | Plain text |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Production, Preview, Development | Plain text |
 | `SUPABASE_SERVICE_ROLE_KEY` | Production, Preview | **Secret** |
-| `ENCRYPTION_KEY` | Production | **Secret** |
-| `TMDB_API_READ_ACCESS_TOKEN` | Development uniquement | **Secret** |
+| `TMDB_API_READ_ACCESS_TOKEN` | Production, Preview, Development | **Secret** |
 
 > Les variables `NEXT_PUBLIC_*` sont exposées au bundle client — ne jamais y mettre de secrets.
 
@@ -40,44 +39,36 @@ Dans **Project Settings → Environment Variables** :
 
 ## CI/CD
 
-### Pipeline actuel (Vercel natif)
+### Workflows GitHub Actions
+
+| Fichier | Déclencheur | Rôle |
+|---|---|---|
+| `ci.yml` | Push + PR sur `main` | Lint, tests, type check |
+| `codeql.yml` | Push + PR sur `main` | Analyse statique de sécurité (GitHub Code Scanning) |
+| `release-please.yml` | Push sur `main` | Gestion automatique des releases |
+| `release.yml` | Publication d'une GitHub Release | Smoke test post-release |
+| `dependabot-auto-merge.yml` | PR Dependabot | Auto-merge des mises à jour mineures |
+
+### Pipeline complet
 
 ```
-Push Git → Vercel déclenche le build automatiquement
+PR mergée sur main
     │
-    ├── pnpm install
-    ├── pnpm build (next build)
-    ├── Lint check (eslint)
-    └── Deploy (si build OK)
-```
-
-### Ajouter les tests en CI (GitHub Actions)
-
-Créer `.github/workflows/ci.yml` :
-
-```yaml
-name: CI
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm lint
-      - run: pnpm test --run
+    ├── ci.yml ──► lint + tests + tsc
+    ├── codeql.yml ──► analyse statique TypeScript (résultats → GitHub Security)
+    │
+    └── release-please.yml
+            │
+            ├── (si commits feat:/fix: depuis la dernière release)
+            │       └── Ouvre/met à jour une PR "chore: release vX.Y.Z"
+            │               └── (PR mergée par le mainteneur)
+            │                       ├── Tag git créé automatiquement
+            │                       ├── CHANGELOG.md mis à jour
+            │                       ├── package.json versionné
+            │                       └── GitHub Release créée
+            │                               └── release.yml ──► smoke test
+            │
+            └── (sinon : aucune action)
 ```
 
 ### Protection de la branche `main`
@@ -86,6 +77,47 @@ Dans **GitHub → Settings → Branches → Branch protection rules** :
 - ✅ Require a pull request before merging
 - ✅ Require status checks to pass (ajouter le job `test` une fois CI configuré)
 - ✅ Require linear history
+
+## Processus de release
+
+Le versionnement est géré par **[release-please](https://github.com/googleapis/release-please)** — aucun commit manuel sur `main` n'est requis.
+
+### Fonctionnement
+
+1. Chaque merge sur `main` analyse les messages de commit ([Conventional Commits](https://www.conventionalcommits.org/)) :
+   - `feat:` → bump mineur (1.3.0 → 1.4.0)
+   - `fix:` → bump patch (1.3.0 → 1.3.1)
+   - `feat!:` ou `BREAKING CHANGE:` → bump majeur (1.3.0 → 2.0.0)
+2. release-please ouvre (ou met à jour) une PR intitulée **`chore: release vX.Y.Z`** contenant :
+   - Mise à jour de `CHANGELOG.md` (section `[Unreleased]` → `[X.Y.Z] — date`)
+   - Bump de version dans `package.json`
+3. Quand cette PR est mergée, release-please crée automatiquement :
+   - Le tag git `vX.Y.Z`
+   - La GitHub Release avec les notes extraites du CHANGELOG
+
+### Configuration
+
+| Fichier | Rôle |
+|---|---|
+| `release-please-config.json` | Type de release, sections CHANGELOG, format du titre de PR |
+| `.release-please-manifest.json` | Version courante (mis à jour automatiquement à chaque release) |
+| `.github/workflows/release-please.yml` | Workflow GitHub Actions |
+
+### Pré-requis : Conventional Commits
+
+release-please se base sur les préfixes de commit pour calculer le bump de version.
+Les commits sans préfixe reconnu (`feat:`, `fix:`, `refactor:`, etc.) sont ignorés dans le CHANGELOG.
+
+```
+feat: ajouter le support des sous-thèmes       → ajout dans "Ajouté"
+fix: corriger le calcul de deadline propositions → ajout dans "Corrigé"
+refactor: simplifier le client TMDb             → ajout dans "Modifié"
+chore: mettre à jour les dépendances            → masqué (hidden: true)
+```
+
+### La section `[Unreleased]` dans CHANGELOG.md
+
+La section `[Unreleased]` existante (ajoutée manuellement) sera **remplacée et intégrée** par release-please lors de la première PR de release qu'il génère. À partir de ce moment, ne plus modifier `CHANGELOG.md` manuellement — release-please en est le seul auteur.
 
 ## Build et performances
 

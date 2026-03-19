@@ -34,7 +34,7 @@ export async function POST(
 
   const supabase = createAdminClient()
 
-  const token = await getActiveTmdbToken(user.id)
+  const token = getActiveTmdbToken()
   if (!token) return NextResponse.json({ error: "Token TMDb non configuré" }, { status: 500 })
 
   const { data: soiree } = await supabase
@@ -43,7 +43,13 @@ export async function POST(
     .eq("id", soireeId)
     .single()
 
-  if (!soiree?.winning_theme_id) {
+  if (!soiree) {
+    return NextResponse.json({ error: "Soiree non trouvee" }, { status: 404 })
+  }
+  if (soiree.created_by !== user.id) {
+    return NextResponse.json({ error: "Non autorise" }, { status: 403 })
+  }
+  if (!soiree.winning_theme_id) {
     return NextResponse.json({ error: "Pas de theme gagnant" }, { status: 400 })
   }
 
@@ -55,7 +61,7 @@ export async function POST(
 
   const genreIds: number[] = theme?.genre_ids?.length ? theme.genre_ids : []
   const filmCount = soiree.film_count ?? 10
-  const targetCount = filmCount * 2
+  const targetCount = filmCount
 
   const scored = new Map<number, { movie: TmdbResult; score: number }>()
   let usedDiscover = false

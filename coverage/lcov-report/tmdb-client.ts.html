@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for tmdb.ts</title>
+    <title>Code coverage report for tmdb-client.ts</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="prettify.css" />
     <link rel="stylesheet" href="base.css" />
@@ -19,20 +19,20 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="index.html">All files</a> tmdb.ts</h1>
+        <h1><a href="index.html">All files</a> tmdb-client.ts</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>9/9</span>
+                <span class='fraction'>11/11</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>6/6</span>
+                <span class='fraction'>5/5</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>7/7</span>
+                <span class='fraction'>10/10</span>
             </div>
         
             
@@ -95,41 +95,21 @@
 <a name='L30'></a><a href='#L30'>30</a>
 <a name='L31'></a><a href='#L31'>31</a>
 <a name='L32'></a><a href='#L32'>32</a>
-<a name='L33'></a><a href='#L33'>33</a>
-<a name='L34'></a><a href='#L34'>34</a>
-<a name='L35'></a><a href='#L35'>35</a>
-<a name='L36'></a><a href='#L36'>36</a>
-<a name='L37'></a><a href='#L37'>37</a>
-<a name='L38'></a><a href='#L38'>38</a>
-<a name='L39'></a><a href='#L39'>39</a>
-<a name='L40'></a><a href='#L40'>40</a>
-<a name='L41'></a><a href='#L41'>41</a>
-<a name='L42'></a><a href='#L42'>42</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<a name='L33'></a><a href='#L33'>33</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -138,53 +118,46 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">export const TMDB_BASE_URL = "https://api.themoviedb.org/3";
-export const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p";
-&nbsp;
-/**
- * Build a TMDb poster URL from a poster path.
- * Returns a local placeholder SVG when the path is null.
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/**
+ * TMDb HTTP client with concurrency control and 429 retry.
  *
- * @param path - The poster_path value from TMDb (e.g. "/abc123.jpg")
- * @param size - Image size: "w342" | "w500" | "w780" | "original" (default: "w500")
- * @returns Full HTTPS image URL or "/placeholder-movie.svg"
+ * - Limits parallel requests to MAX_CONCURRENT (protects against burst in Promise.all)
+ * - Retries once after RETRY_DELAY_MS when TMDb returns 429
  */
-export function tmdbPoster(path: string | null, size: "w342" | "w500" | "w780" | "original" = "w500"): string {
-  if (!path) return "/placeholder-movie.svg";
-  return `${TMDB_IMAGE_BASE}/${size}${path}`;
+import pLimit from "p-limit"
+&nbsp;
+const MAX_CONCURRENT = 8
+const RETRY_DELAY_MS = 1000
+const MAX_RETRIES = 2
+&nbsp;
+export const tmdbLimiter = pLimit(MAX_CONCURRENT)
+&nbsp;
+async function sleep(ms: number) {
+  return new Promise((resolve) =&gt; setTimeout(resolve, ms))
 }
 &nbsp;
-/**
- * Build a TMDb backdrop URL from a backdrop path.
- * Returns an empty string when the path is null.
- *
- * @param path - The backdrop_path value from TMDb (e.g. "/backdrop123.jpg")
- * @param size - Image size: "w780" | "w1280" | "original" (default: "w1280")
- * @returns Full HTTPS image URL or ""
- */
-export function tmdbBackdrop(path: string | null, size: "w780" | "w1280" | "original" = "w1280"): string {
-  if (!path) return "";
-  return `${TMDB_IMAGE_BASE}/${size}${path}`;
-}
+export async function tmdbFetch(
+  url: string,
+  headers: HeadersInit,
+  attempt = 1
+): Promise&lt;Response&gt; {
+  const res = await fetch(url, { headers })
 &nbsp;
-/**
- * Build TMDb API headers for a given bearer token.
- *
- * @param token - The TMDb Read Access Token (from env or DB)
- * @returns HeadersInit object with Authorization and Content-Type
- */
-export function tmdbHeaders(token: string): HeadersInit {
-  return {
-    Authorization: `Bearer ${token}`,
-    "Content-Type": "application/json;charset=utf-8",
-  };
+  if (res.status === 429 &amp;&amp; attempt &lt; MAX_RETRIES) {
+    await sleep(RETRY_DELAY_MS * attempt)
+    return tmdbFetch(url, headers, attempt + 1)
+  }
+&nbsp;
+  return res
 }
 &nbsp;</pre></td></tr></table></pre>
 
