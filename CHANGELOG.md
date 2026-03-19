@@ -24,6 +24,7 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 - **Durée de vote en format lisible** (`1h`, `2 jours`, `30min`, vide = illimité) — même expérience que le champ durée des propositions.
 - **Durée des propositions nullable** : champ vide = pas de délai automatique (clôture manuelle uniquement).
 - **Client TMDb centralisé** (`lib/tmdb-client.ts`) : concurrence limitée à 8 requêtes parallèles (`p-limit`), retry automatique sur HTTP 429 avec back-off exponentiel.
+- **Badge de version dans le footer** : affiche `v1.x.x` en production et `build #abc1234` en preview Vercel (masqué en local).
 
 ### Modifié
 
@@ -47,6 +48,7 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 - Suite portée à **134 tests** — couverture 100 % sur tous les modules `lib/`.
 - Ajout : `__tests__/lib/tmdb-client.test.ts` (5 tests : succès, retry 429, limite retry, pas de retry 500, concurrence limiter).
+- Ajout : `__tests__/lib/build-info.test.ts` (5 tests : production, preview avec/sans SHA, development, local).
 - Ajout : `__tests__/api/update-settings.test.ts` (9 tests : phase gate, validation `film_count`, ownership).
 - Ajout : `__tests__/api/start-proposals.test.ts` (5 tests : calcul deadline nullable).
 - Mise à jour : `__tests__/lib/tmdb-token.test.ts`, `__tests__/lib/voter.test.ts` (couverture SSR).

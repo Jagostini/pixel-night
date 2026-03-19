@@ -1,10 +1,12 @@
 import Script from "next/script"
 import Link from "next/link"
 import { Film, Github, Map, BookOpen, FileCode2, Heart, Award } from "lucide-react"
+import { getBuildBadge } from "@/lib/build-info"
 
 const GITHUB_URL = "https://github.com/Jagostini/pixel-night"
 
 export function SiteFooter() {
+  const badge = getBuildBadge()
   return (
     <footer className="border-t border-border py-8">
       <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4">
@@ -68,9 +70,16 @@ export function SiteFooter() {
         </nav>
 
         {/* Bottom */}
-        <p className="text-center text-xs text-muted-foreground sm:text-left">
-          MIT + Commons Clause — Open source, contributions bienvenues.
-        </p>
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-center text-xs text-muted-foreground sm:text-left">
+            MIT + Commons Clause — Open source, contributions bienvenues.
+          </p>
+          {badge && (
+            <span className="text-center text-xs text-muted-foreground/60 sm:text-right">
+              {badge}
+            </span>
+          )}
+        </div>
       </div>
 
       <Script
