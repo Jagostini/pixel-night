@@ -5,6 +5,7 @@
   "bump-minor-pre-major": true,
   "pull-request-title-pattern": "chore: release ${version}",
   "include-component-in-tag": false,
+  "bootstrap-sha": "1d8afcd41bd7e23e50fcdde21915c9d1a33d5967",
   "changelog-sections": [
     { "type": "feat",     "section": "### Ajouté" },
     { "type": "fix",      "section": "### Corrigé" },
