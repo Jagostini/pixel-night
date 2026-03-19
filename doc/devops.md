@@ -44,6 +44,7 @@ Dans **Project Settings → Environment Variables** :
 | Fichier | Déclencheur | Rôle |
 |---|---|---|
 | `ci.yml` | Push + PR sur `main` | Lint, tests, type check |
+| `codeql.yml` | Push + PR sur `main` | Analyse statique de sécurité (GitHub Code Scanning) |
 | `release-please.yml` | Push sur `main` | Gestion automatique des releases |
 | `release.yml` | Publication d'une GitHub Release | Smoke test post-release |
 | `dependabot-auto-merge.yml` | PR Dependabot | Auto-merge des mises à jour mineures |
@@ -54,6 +55,7 @@ Dans **Project Settings → Environment Variables** :
 PR mergée sur main
     │
     ├── ci.yml ──► lint + tests + tsc
+    ├── codeql.yml ──► analyse statique TypeScript (résultats → GitHub Security)
     │
     └── release-please.yml
             │

@@ -27,6 +27,7 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 - **Badge de version dans le footer** : affiche `v1.x.x` en production et `build #abc1234` en preview Vercel (masqué en local).
 - **Pages légales** : `/legal` (mentions légales LCEN) et `/privacy` (politique de confidentialité RGPD) avec liens dans le footer.
 - **Vercel Speed Insights** : collecte des Core Web Vitals (LCP, FID, CLS) pour le suivi des performances en production.
+- **CodeQL** : analyse statique de sécurité (GitHub Code Scanning) sur chaque PR et push vers `main`.
 
 ### Modifié
 
