@@ -6,6 +6,13 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [2.0.1](https://github.com/Jagostini/pixel-night/compare/v2.0.0...v2.0.1) (2026-03-19)
+
+
+### ### Modifié
+
+* Openapi dynamique ([#27](https://github.com/Jagostini/pixel-night/issues/27)) ([fa116e4](https://github.com/Jagostini/pixel-night/commit/fa116e40551ea9fae6525badc93d2942d440e883))
+
 ## [2.0.0](https://github.com/Jagostini/pixel-night/compare/pixel-night-v1.3.0...pixel-night-v2.0.0) (2026-03-19)
 
 
