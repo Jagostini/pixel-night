@@ -6,6 +6,49 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [2.0.0](https://github.com/Jagostini/pixel-night/compare/pixel-night-v1.3.0...pixel-night-v2.0.0) (2026-03-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* 
+* add ownership enforcement, legal pages, build badge, and fix documentation rendering ([#18](https://github.com/Jagostini/pixel-night/issues/18))
+* TMDb token is now read exclusively from the TMDB_API_READ_ACCESS_TOKEN environment variable. Per-user encrypted token storage (tmdb_token_encrypted column in sp_salles) has been removed.
+
+### ### Ajouté
+
+* Add 403 Forbidden responses to the OpenAPI specification and update the Next.js dependency. ([826afff](https://github.com/Jagostini/pixel-night/commit/826afff29cf145a4ed12e34e03a4a0da0d8925e1))
+* add a CLAUDE.md file for AI guidance. ([22f87b1](https://github.com/Jagostini/pixel-night/commit/22f87b12095b02b9c4fa723e235783a8e72d8f39))
+* Add build information utility and display version badge in the site footer. ([d0c09f5](https://github.com/Jagostini/pixel-night/commit/d0c09f5b239245d2d0ee853a88a3f80307dc023e))
+* add CodeQL workflow for static security analysis and update documentation and changelog accordingly. ([67eaf58](https://github.com/Jagostini/pixel-night/commit/67eaf58c9ceb9402cf6c27d6149f1fce0d7eadd5))
+* Add legal and privacy policy pages, integrate Vercel Speed Insights, and update site footer navigation. ([e7dd2f7](https://github.com/Jagostini/pixel-night/commit/e7dd2f707ae983bebc1bb498efc706fc58657b10))
+* add ownership enforcement, legal pages, build badge, and fix documentation rendering ([#18](https://github.com/Jagostini/pixel-night/issues/18)) ([18a8c0a](https://github.com/Jagostini/pixel-night/commit/18a8c0ad8c9aadc7cc15b64a4537308b1ea9b405))
+* cinema/rooms, exclusion rules, film curation, TMDb Discover ([d74225c](https://github.com/Jagostini/pixel-night/commit/d74225c3b342145a411650972c77c689aa839729))
+* cinema/rooms, exclusion rules, film curation, TMDb Discover, theme catalog ([61f2903](https://github.com/Jagostini/pixel-night/commit/61f290302b119e4d730ab870f6208f2a1d2b8f23))
+* Implement cinema configuration, theme management with catalog and exclusion rules, and film curation. ([c8c87d1](https://github.com/Jagostini/pixel-night/commit/c8c87d18515bf75ac795d530aeee5cd3c49f7f5f))
+* Implement soiree settings update functionality, including film count management and adjusted film discovery logic, alongside improved voter utility tests. ([7f47c92](https://github.com/Jagostini/pixel-night/commit/7f47c926c1e209072a31b50b05da8443e1301f3d))
+* Introduce a credits page for attributions, update the footer ([32df16c](https://github.com/Jagostini/pixel-night/commit/32df16c2b429eee4b42a4445ebcd1493bb2d3759))
+* Introduce flexible duration input for votes and proposals, allowing natural language parsing and unlimited periods. ([c3dc9a5](https://github.com/Jagostini/pixel-night/commit/c3dc9a5517c9a7642c7bc3df2b2b0980ed9a27b7))
+* Refactor TMDB token handling to use environment variables exclusively, add authorization check for soiree settings updates, and introduce new API tests. ([ed3eee7](https://github.com/Jagostini/pixel-night/commit/ed3eee774623adaeebab2f8c4bd61b64117b3f46))
+* Restrict soiree management and modification API endpoints to the event creator. ([76496e2](https://github.com/Jagostini/pixel-night/commit/76496e2b2ad2bf5c553f5e1ed67d3debc7e88850))
+
+
+### ### Corrigé
+
+* correction de la structure et sécurité ([#20](https://github.com/Jagostini/pixel-night/issues/20)) ([fd3d730](https://github.com/Jagostini/pixel-night/commit/fd3d73062778d1aa67325d93da7243c03c74c812))
+* Update pre-push hook to include pnpm in PATH for audit. ([1318722](https://github.com/Jagostini/pixel-night/commit/131872299a903176e8df963d26ba79ef33a1e52c))
+
+
+### ### Modifié
+
+* centralize TMDb API calls with a new client and rate limiting, removing database token storage and encryption. ([76ef7c9](https://github.com/Jagostini/pixel-night/commit/76ef7c90af00b9f8ff2b19b49ed35e88b25b389d))
+* Simplify TMDB token handling to use environment variables and introduce a dedicated TMDB client. ([584eeea](https://github.com/Jagostini/pixel-night/commit/584eeea46c9d21fd68f740e6072e7d0134b5cf84))
+
+
+### ### Documentation
+
+* document TMDb token handling breaking change and bump version to v2.0.0 in CHANGELOG. ([8b7829d](https://github.com/Jagostini/pixel-night/commit/8b7829d00c589a71832d1cb3436b165e9c6d5da7))
+
 ## [Unreleased] — v2.0.0
 
 ### ⚠ Breaking Changes
