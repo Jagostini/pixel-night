@@ -1,6 +1,6 @@
 import Script from "next/script"
 import Link from "next/link"
-import { Film, Github, Map, BookOpen, FileCode2, Heart, Award } from "lucide-react"
+import { Film, Github, Map, BookOpen, FileCode2, Heart, Award, Scale, ShieldCheck } from "lucide-react"
 import { getBuildBadge } from "@/lib/build-info"
 
 const GITHUB_URL = "https://github.com/Jagostini/pixel-night"
@@ -66,6 +66,20 @@ export function SiteFooter() {
           >
             <Award className="h-3 w-3" />
             Crédits
+          </Link>
+          <Link
+            href="/legal"
+            className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
+          >
+            <Scale className="h-3 w-3" />
+            Mentions légales
+          </Link>
+          <Link
+            href="/privacy"
+            className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
+          >
+            <ShieldCheck className="h-3 w-3" />
+            Confidentialité
           </Link>
         </nav>
 

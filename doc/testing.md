@@ -178,7 +178,10 @@ pnpm test --coverage   # Couverture de code
 | PUB-02 | Code invalide | Saisir un slug inexistant | Page → 404 |
 | PUB-03 | Roadmap | Ouvrir `/roadmap` | Page chargée, issues GitHub affichées ou état vide |
 | PUB-04 | Documentation API | Ouvrir `/docs` | Page Redoc chargée avec l'OpenAPI spec |
-| PUB-05 | Footer | Vérifier tous les liens du footer | GitHub, Docs, Roadmap, Contribuer fonctionnels |
+| PUB-05 | Footer | Vérifier tous les liens du footer | GitHub, Docs, Roadmap, Contribuer, Crédits, Mentions légales, Confidentialité fonctionnels |
+| PUB-06 | Crédits | Ouvrir `/credits` | Logo TMDb affiché, mention légale TMDb présente |
+| PUB-07 | Mentions légales | Ouvrir `/legal` | Page chargée, éditeur Helixir affiché |
+| PUB-08 | Confidentialité | Ouvrir `/privacy` | Page chargée, droits RGPD et lien CNIL présents |
 
 ---
 

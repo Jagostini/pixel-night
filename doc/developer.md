@@ -53,6 +53,7 @@ pixel-night/
 │   ├── theme-catalog.ts    # THEME_CATALOG, TMDB_GENRES, TMDB_GENRE_LIST
 │   ├── tmdb-client.ts      # Rate limiting TMDb (p-limit, retry 429)
 │   ├── duration.ts         # parseDurationToMinutes() / formatDurationFromMinutes()
+│   ├── build-info.ts       # getBuildBadge() — version prod / SHA preview / null local
 │   └── voter.ts            # getVoterId() — ID anonyme localStorage
 ├── __tests__/
 │   ├── lib/                # Tests unitaires des utilitaires
