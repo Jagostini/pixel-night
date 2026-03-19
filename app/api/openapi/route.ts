@@ -1,15 +1,15 @@
 import { readFileSync } from "fs"
 import { join } from "path"
+import { version } from "@/package.json"
+
+const raw = readFileSync(join(process.cwd(), "openapi.yaml"), "utf-8")
+const spec = raw.replace(/^(\s*version:\s*)[\d.]+(-[\w.]+)?/m, `$1${version}`)
 
 export async function GET() {
-  const yaml = readFileSync(join(process.cwd(), "openapi.yaml"), "utf-8")
-  const { version } = JSON.parse(
-    readFileSync(join(process.cwd(), "package.json"), "utf-8")
-  ) as { version: string }
-
-  const patched = yaml.replace(/^(\s*version:\s*)[\d.]+(-\w+)?/m, `$1${version}`)
-
-  return new Response(patched, {
-    headers: { "Content-Type": "application/yaml; charset=utf-8" },
+  return new Response(spec, {
+    headers: {
+      "Content-Type": "application/yaml; charset=utf-8",
+      "Cache-Control": "public, max-age=3600, s-maxage=86400",
+    },
   })
 }

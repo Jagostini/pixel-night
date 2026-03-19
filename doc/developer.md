@@ -60,8 +60,7 @@ pixel-night/
 │   └── api/                # Tests de logique API (finalize-*, exclusion, curation)
 ├── scripts/                # Migrations SQL (exécuter dans l'ordre)
 ├── doc/                    # Documentation
-├── public/
-│   └── openapi.yaml        # Spec OpenAPI 3.0
+├── openapi.yaml            # Spec OpenAPI 3.0 (servie dynamiquement via GET /api/openapi)
 └── proxy.ts                # Proxy Supabase SSR (anciennement middleware.ts)
 ```
 
@@ -91,7 +90,7 @@ pnpm test --ui    # Interface Vitest (mode watch)
    import { createAdminClient } from "@/lib/supabase/admin"
    const supabase = createAdminClient()
    ```
-5. Documenter l'endpoint dans `public/openapi.yaml`
+5. Documenter l'endpoint dans `openapi.yaml` (racine du projet)
 
 ## Utiliser le client Supabase correct
 

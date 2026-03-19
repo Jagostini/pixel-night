@@ -1,7 +1,7 @@
 # Référence API — Pixel Night
 
 La documentation interactive complète est disponible sur **[/docs](/docs)** — rendue par
-[Redoc](https://redocly.com/redoc/) à partir du fichier `public/openapi.yaml`.
+[Redoc](https://redocly.com/redoc/) à partir de la route dynamique `/api/openapi`.
 
 ## Accès rapide
 
@@ -99,4 +99,4 @@ Toutes les erreurs suivent le format :
 
 → **[Ouvrir la documentation interactive Redoc](/docs)**
 
-Le fichier source OpenAPI est disponible dans `public/openapi.yaml`.
+Le fichier source OpenAPI est `openapi.yaml` à la racine du projet. La version y est injectée automatiquement depuis `package.json` au moment de la requête via `GET /api/openapi`.
