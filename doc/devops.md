@@ -23,8 +23,7 @@ Dans **Project Settings → Environment Variables** :
 | `NEXT_PUBLIC_SUPABASE_URL` | Production, Preview, Development | Plain text |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Production, Preview, Development | Plain text |
 | `SUPABASE_SERVICE_ROLE_KEY` | Production, Preview | **Secret** |
-| `ENCRYPTION_KEY` | Production | **Secret** |
-| `TMDB_API_READ_ACCESS_TOKEN` | Development uniquement | **Secret** |
+| `TMDB_API_READ_ACCESS_TOKEN` | Production, Preview, Development | **Secret** |
 
 > Les variables `NEXT_PUBLIC_*` sont exposées au bundle client — ne jamais y mettre de secrets.
 

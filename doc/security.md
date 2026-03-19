@@ -17,7 +17,7 @@
 |---|---|---|
 | Double vote | Moyenne | `voter_id` unique par soiree en DB + contrainte `UNIQUE` |
 | Prise de contrôle admin | Faible | Auth Supabase + RLS, session cookie httpOnly |
-| Exfiltration token TMDb | Faible | AES-256-GCM en DB, clé hors DB |
+| Exfiltration token TMDb | Faible | Stocké uniquement en variable d'environnement serveur |
 | Injection SQL | Faible | ORM Supabase (requêtes paramétrées) |
 | XSS | Faible | React escape natif, CSP headers Vercel |
 | CSRF | Faible | Tokens Supabase + SameSite cookies |
@@ -71,37 +71,9 @@ La logique de sécurité est alors implémentée dans le code du route handler :
 | `sp_salles` | `auth.uid() = created_by` | `auth.uid() = created_by` | |
 | `sp_profiles` | `auth.uid() = id` | `auth.uid() = id` | |
 
-## Chiffrement du token TMDb
+## Token TMDb
 
-### Algorithme
-
-**AES-256-GCM** via Web Crypto API (`crypto.subtle`) — standard industrie, authentifié.
-
-```
-ENCRYPTION_KEY (32 octets hex) → CryptoKey AES-GCM
-IV aléatoire (12 octets) généré à chaque chiffrement
-Ciphertext = AES-GCM-Encrypt(plaintext, key, iv)
-Stocké = JSON.stringify({ iv: base64(iv), ct: base64(ciphertext) })
-```
-
-### Propriétés de sécurité
-
-- **IV unique** par chiffrement → deux chiffrements du même token produisent des valeurs différentes
-- **Authentification** : AES-GCM détecte toute modification du ciphertext (tamper detection)
-- **Clé hors DB** : `ENCRYPTION_KEY` n'est jamais stockée en base — une compromission DB seule ne suffit pas
-- **Pas de dérivation de clé** : la clé est directement utilisée — choisir une clé suffisamment forte (256 bits = `openssl rand -hex 32`)
-
-### Ce que AES-GCM ne protège pas
-
-- Si l'attaquant accède à la fois à la DB **et** à `ENCRYPTION_KEY`, le token est déchiffrable
-- Protection contre : compromission DB seule, accès lecture non autorisé aux logs
-
-### Génération de la clé
-
-```bash
-openssl rand -hex 32
-# Exemple : a3f8c2d1e4b7a9f0c3d2e1f4b8a7c9d0e2f1c3d4e5f6a7b8c9d0e1f2a3b4c5d6
-```
+Le token TMDb est stocké exclusivement dans la variable d'environnement `TMDB_API_READ_ACCESS_TOKEN` (côté serveur uniquement). Il n'est jamais stocké en base de données.
 
 ## Anonymat des votants
 
@@ -117,7 +89,6 @@ openssl rand -hex 32
 | `NEXT_PUBLIC_SUPABASE_URL` | Publique (bundle client) | Faible — URL publique |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Publique (bundle client) | Faible — limitée par RLS |
 | `SUPABASE_SERVICE_ROLE_KEY` | Serveur uniquement | **Critique** — bypass RLS complet |
-| `ENCRYPTION_KEY` | Serveur uniquement | **Élevé** — déchiffrement token TMDb |
 | `TMDB_API_READ_ACCESS_TOKEN` | Serveur uniquement | Moyen — utilisation TMDb abusive |
 
 ### Bonnes pratiques
@@ -125,7 +96,6 @@ openssl rand -hex 32
 - Ne jamais commiter `.env.local` (vérifier `.gitignore`)
 - Utiliser les secrets Vercel pour les variables sensibles
 - Rotation périodique de `SUPABASE_SERVICE_ROLE_KEY` si compromission suspectée
-- Rotation de `ENCRYPTION_KEY` avec re-chiffrement du token (voir doc/sysadmin.md)
 
 ## Protection contre les abus
 

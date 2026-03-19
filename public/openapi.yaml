@@ -288,7 +288,7 @@ paths:
         2. Filtre : `vote_count >= 50`, `adult = false`
         3. Score : `vote_average × log(vote_count + 1)`
         4. Déduplique par `tmdb_id`, trie par score décroissant
-        5. Limite à `film_count × 2`
+        5. Limite à `film_count`
         6. Enrichit chaque film (réalisateur, durée, bande-annonce YouTube)
       security:
         - SupabaseSession: []
@@ -509,8 +509,8 @@ paths:
                 proposal_duration_minutes:
                   type: integer
                   minimum: 1
-                  default: 60
-                  description: Durée de la phase de propositions en minutes
+                  nullable: true
+                  description: Durée de la phase de propositions en minutes. null ou absent = sans limite de temps, l'organisateur clôture manuellement
       responses:
         '200':
           description: Phase de propositions ouverte
@@ -561,6 +561,54 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /soirees/{id}/update-settings:
+    patch:
+      tags: [Administration]
+      summary: Mettre à jour les paramètres de la soirée
+      description: |
+        Met à jour les paramètres modifiables avant le vote (film_count).
+        Autorisé uniquement en phases planned, theme_vote, film_proposal.
+      security:
+        - SupabaseSession: []
+      parameters:
+        - $ref: '#/components/parameters/SoireeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [film_count]
+              properties:
+                film_count:
+                  type: integer
+                  minimum: 1
+                  maximum: 50
+                  description: Nombre de films soumis au vote final
+      responses:
+        '200':
+          description: Paramètres mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessTrue'
+        '400':
+          description: Paramètres invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Phase incorrecte — modification impossible
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -624,7 +672,7 @@ paths:
       summary: Rechercher des films sur TMDb
       description: |
         Proxy vers `GET /search/movie` de TMDb. Résultats en français (`fr-FR`).
-        Le token TMDb est résolu côté serveur (env var ou DB chiffrée).
+        Le token TMDb est résolu côté serveur (env var uniquement).
       parameters:
         - name: query
           in: query
@@ -693,8 +741,7 @@ paths:
       tags: [TMDb]
       summary: Statut de la configuration TMDb
       description: |
-        Indique si un token TMDb est disponible et quelle est sa source
-        (`env` ou `database`).
+        Indique si un token TMDb est disponible (env var).
       responses:
         '200':
           description: Statut
@@ -707,49 +754,7 @@ paths:
                     type: boolean
                   source:
                     type: string
-                    enum: [env, database, none]
-
-  /tmdb/save-token:
-    post:
-      tags: [TMDb]
-      summary: Sauvegarder le token TMDb (chiffré)
-      description: |
-        Valide le token auprès de TMDb, le chiffre avec AES-256-GCM (`ENCRYPTION_KEY`)
-        et le stocke dans `sp_salles.tmdb_token_encrypted`.
-      security:
-        - SupabaseSession: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [token]
-              properties:
-                token:
-                  type: string
-                  description: API Read Access Token TMDb
-      responses:
-        '200':
-          description: Token sauvegardé
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SuccessTrue'
-        '400':
-          description: Token invalide ou manquant
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          description: ENCRYPTION_KEY non configurée ou erreur DB
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+                    enum: [env, none]
 
 # ──────────────────────────────────────────────────────────────────
 # COMPONENTS

@@ -165,10 +165,8 @@ pnpm test --coverage   # Couverture de code
 
 | ID | Scénario | Action | Résultat attendu |
 |---|---|---|---|
-| TMDb-01 | Statut sans token | Aucun token configuré | `/api/tmdb/status` → `{ configured: false }` |
-| TMDb-02 | Sauvegarder token valide | Saisir un token TMDb valide | Succès, `{ configured: true, source: "database" }` |
-| TMDb-03 | Sauvegarder token invalide | Saisir un token invalide | Erreur « Token invalide » |
-| TMDb-04 | Priorité env var | `TMDB_API_READ_ACCESS_TOKEN` défini | `source: "env"` retourné |
+| TMDb-01 | Statut sans token | `TMDB_API_READ_ACCESS_TOKEN` absent | `/api/tmdb/status` → `{ configured: false }` |
+| TMDb-02 | Statut avec token | `TMDB_API_READ_ACCESS_TOKEN` défini | `/api/tmdb/status` → `{ configured: true }` |
 
 ---
 

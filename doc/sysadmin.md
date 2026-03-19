@@ -13,17 +13,12 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...    # ⚠ Ne jamais exposer côté client
 
 # ── TMDb ──────────────────────────────────────────────────────────
-# Option A : token en clair (développement ou déploiement sans DB)
 # themoviedb.org → Paramètres → API → API Read Access Token
 TMDB_API_READ_ACCESS_TOKEN=eyJ...
-
-# Option B : token chiffré en base (production recommandée)
-# Générer : openssl rand -hex 32
-ENCRYPTION_KEY=<64-chars-hex>
 ```
 
-> **Priorité** : si `TMDB_API_READ_ACCESS_TOKEN` est défini ET non vide, il est utilisé en priorité.
-> Sinon, le système cherche un token chiffré dans `sp_salles.tmdb_token_encrypted` et le déchiffre avec `ENCRYPTION_KEY`.
+> **Important** : `TMDB_API_READ_ACCESS_TOKEN` est la seule source pour le token TMDb.
+> Il est résolu exclusivement depuis l'environnement serveur — il n'est jamais stocké en base de données.
 
 ### Variables requises / optionnelles
 
@@ -32,10 +27,7 @@ ENCRYPTION_KEY=<64-chars-hex>
 | `NEXT_PUBLIC_SUPABASE_URL` | Public | ✅ | URL projet Supabase |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public | ✅ | Clé publique Supabase |
 | `SUPABASE_SERVICE_ROLE_KEY` | Secret | ✅ | Clé service role (jamais client) |
-| `TMDB_API_READ_ACCESS_TOKEN` | Secret | ⚡ | Token TMDb en clair |
-| `ENCRYPTION_KEY` | Secret | ⚡ | Clé AES-256 hex 64 chars |
-
-⚡ = au moins une des deux doit être présente pour que les fonctionnalités TMDb fonctionnent.
+| `TMDB_API_READ_ACCESS_TOKEN` | Secret | ✅ | Token TMDb (API Read Access Token) |
 
 ## Configuration Supabase
 
@@ -69,11 +61,8 @@ Dans le **SQL Editor** de Supabase, exécuter dans l'ordre :
 -- 4. Phase film_proposal + durée
 -- → scripts/004_sp_add_projection_proposals.sql
 
--- 5a. Phase cancelled
--- → scripts/005_sp_add_cancelled_phase.sql
-
--- 5b. Token TMDb chiffré
--- → scripts/005_sp_add_tmdb_token.sql
+-- 5. Suppression de la colonne tmdb_token_encrypted
+-- → scripts/005_sp_remove_tmdb_token.sql
 
 -- 6. Table sp_salles
 -- → scripts/006_sp_add_salles.sql
@@ -97,39 +86,25 @@ Les politiques définies dans `002_sp_rls_policies.sql` :
 
 ## Gestion du token TMDb
 
-### Approche recommandée en production
+### Configuration
 
-1. Générer `ENCRYPTION_KEY` : `openssl rand -hex 32`
-2. Ajouter `ENCRYPTION_KEY` dans les variables d'env Vercel (secret)
-3. Ne **pas** définir `TMDB_API_READ_ACCESS_TOKEN` en production
-4. L'organisateur saisit son token TMDb dans **Admin → Paramètres** → stocké chiffré en DB
+1. Obtenir un token sur [themoviedb.org](https://www.themoviedb.org/settings/api) → **API Read Access Token** (le long token Bearer)
+2. Ajouter `TMDB_API_READ_ACCESS_TOKEN` dans les variables d'environnement Vercel (secret, tous environnements)
 
 ### Vérifier la configuration
 
 `GET /api/tmdb/status` retourne :
 ```json
-{ "configured": true, "source": "database" }
+{ "configured": true }
 // ou
-{ "configured": true, "source": "env" }
-// ou
-{ "configured": false, "source": "none" }
+{ "configured": false }
 ```
 
 ### Rotation du token TMDb
 
 1. Générer un nouveau token sur themoviedb.org
-2. Le saisir dans **Admin → Paramètres**
-3. L'ancien token est remplacé (UPDATE sur `sp_salles.tmdb_token_encrypted`)
-
-### Rotation de la clé de chiffrement
-
-⚠ Si `ENCRYPTION_KEY` change, le token chiffré en DB devient illisible.
-
-Procédure de rotation :
-1. Récupérer le token TMDb actuel (le noter avant rotation)
-2. Changer `ENCRYPTION_KEY` dans Vercel
+2. Mettre à jour `TMDB_API_READ_ACCESS_TOKEN` dans les variables d'environnement Vercel
 3. Redéployer
-4. Re-saisir le token dans **Admin → Paramètres**
 
 ## Sauvegardes
 
@@ -137,7 +112,7 @@ Supabase effectue des sauvegardes automatiques quotidiennes (plan Pro) ou hebdom
 
 Tables critiques à sauvegarder :
 - `sp_soirees` — historique des soirées
-- `sp_salles` — contient le token TMDb chiffré
+- `sp_salles` — configuration des cinémas
 - `sp_themes` — catalogue de thèmes personnalisés
 - `sp_profiles` — comptes organisateurs
 
@@ -153,7 +128,7 @@ Exporter manuellement via **Database → Backups** ou `pg_dump` via la connectio
 
 | Service | Limite | Mitigation |
 |---|---|---|
-| TMDb API | ~40 req/10s | Algorithme batch : toutes les requêtes fetch-films sont séquentielles par query |
+| TMDb API | ~40 req/s | `lib/tmdb-client.ts` : max 8 requêtes parallèles (p-limit) + retry automatique sur 429 |
 | GitHub API (roadmap) | 60 req/h (sans auth) | ISR cache 5 min — 12 appels/h max |
 | Supabase Free | 500 MB DB, 2 GB transfert/mois | Surveiller dans le dashboard Supabase |
 
@@ -163,10 +138,9 @@ Exporter manuellement via **Database → Backups** ou `pg_dump` via la connectio
 □ NEXT_PUBLIC_SUPABASE_URL configurée
 □ NEXT_PUBLIC_SUPABASE_ANON_KEY configurée
 □ SUPABASE_SERVICE_ROLE_KEY configurée (secret Vercel)
-□ ENCRYPTION_KEY configurée (secret Vercel, 64 chars hex)
+□ TMDB_API_READ_ACCESS_TOKEN configurée (secret Vercel)
 □ Toutes les migrations SQL exécutées (001 → 007)
 □ Compte organisateur créé
-□ Token TMDb saisi dans Admin → Paramètres
 □ GET /api/tmdb/status → { configured: true }
 □ Soirée de test créée et complétée
 ```

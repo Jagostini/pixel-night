@@ -9,19 +9,6 @@ cinéma. Pas besoin de compétences techniques.
 2. Renseigner votre email et un mot de passe
 3. Vous êtes connecté — vous accédez au tableau de bord `/admin`
 
-## Configurer le token TMDb (une seule fois)
-
-TMDb (The Movie Database) fournit les informations sur les films. Vous devez configurer
-votre token une fois pour toutes.
-
-1. Créer un compte gratuit sur [themoviedb.org](https://www.themoviedb.org/)
-2. Aller dans **Paramètres → API** → copier l'**API Read Access Token** (commence par `eyJ...`)
-3. Dans Pixel Night : aller dans **Admin → Paramètres**
-4. Coller le token et cliquer "Enregistrer"
-5. Le token est chiffré et sauvegardé — vous n'aurez pas à le ressaisir
-
-> Le token est stocké chiffré dans la base de données. Il n'est jamais visible en clair.
-
 ## Configurer votre cinéma
 
 Lors de votre première connexion, un cinéma est automatiquement créé. Vous pouvez le
@@ -96,7 +83,7 @@ Chaque thème peut être activé ou désactivé. Seuls les thèmes actifs (et no
    - **Heure de projection** (optionnel) : heure de début
    - **Nombre de thèmes** : combien de thèmes sont proposés au vote
    - **Nombre de films** : combien de films sont soumis au vote final
-   - **Durée du vote** (optionnel) : durée en minutes, vide = illimité
+   - **Durée du vote** (optionnel) : durée en texte libre, vide = illimité — ex : `30min`, `1h`, `2 jours`
    - **Permettre les propositions ?** : si coché, les participants pourront proposer leurs propres films
 4. Cliquer **Créer la soirée**
 
@@ -134,7 +121,7 @@ Avant que les votes ne commencent, vous pouvez ajuster la liste des films :
 > Cette étape n'existe que si vous avez activé les propositions à la création.
 
 1. Cliquer **Lancer les propositions**
-2. Saisir la durée (ex : `2 jours`)
+2. Saisir la durée (ex : `2 jours`) — vide = l'organisateur clôture manuellement
 3. Les participants peuvent rechercher et proposer jusqu'à 3 films chacun
 4. Quand la durée est écoulée (ou manuellement), cliquer **Clore les propositions**
 5. Si personne n'a proposé de film, les films sont récupérés automatiquement depuis TMDb
@@ -168,9 +155,6 @@ Non. Ils votent de manière anonyme via un identifiant stocké dans leur navigat
 
 **Peut-on voter depuis un mobile ?**
 Oui, l'interface est responsive.
-
-**Le token TMDb expire-t-il ?**
-Les tokens TMDb n'expirent pas en principe. Si une erreur apparaît, vérifiez le token dans Admin → Paramètres.
 
 **Peut-on modifier une soirée après création ?**
 La liste des films est modifiable tant qu'aucun vote film n'a été enregistré.
