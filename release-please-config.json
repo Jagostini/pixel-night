@@ -1,20 +1,23 @@
 {
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
-  "release-type": "node",
-  "changelog-path": "CHANGELOG.md",
-  "bump-minor-pre-major": true,
-  "pull-request-title-pattern": "chore: release ${version}",
-  "include-component-in-tag": false,
-  "bootstrap-sha": "1d8afcd41bd7e23e50fcdde21915c9d1a33d5967",
-  "changelog-sections": [
-    { "type": "feat",     "section": "### Ajouté" },
-    { "type": "fix",      "section": "### Corrigé" },
-    { "type": "refactor", "section": "### Modifié" },
-    { "type": "perf",     "section": "### Modifié" },
-    { "type": "security", "section": "### Sécurité" },
-    { "type": "docs",     "section": "### Documentation" },
-    { "type": "chore",    "section": "### Maintenance", "hidden": true },
-    { "type": "build",    "section": "### Maintenance", "hidden": true },
-    { "type": "ci",       "section": "### Maintenance", "hidden": true }
-  ]
+  "packages": {
+    ".": {
+      "release-type": "node",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true,
+      "pull-request-title-pattern": "chore: release ${version}",
+      "changelog-sections": [
+        { "type": "feat",     "section": "### Ajouté" },
+        { "type": "fix",      "section": "### Corrigé" },
+        { "type": "refactor", "section": "### Modifié" },
+        { "type": "perf",     "section": "### Modifié" },
+        { "type": "security", "section": "### Sécurité" },
+        { "type": "docs",     "section": "### Documentation" },
+        { "type": "chore",    "section": "### Maintenance", "hidden": true },
+        { "type": "build",    "section": "### Maintenance", "hidden": true },
+        { "type": "ci",       "section": "### Maintenance", "hidden": true }
+      ]
+    }
+  },
+  "bootstrap-sha": "1d8afcd41bd7e23e50fcdde21915c9d1a33d5967"
 }
