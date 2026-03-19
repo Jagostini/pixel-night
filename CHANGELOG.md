@@ -40,6 +40,8 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 - **Vérification de propriété (403)** ajoutée sur toutes les routes de mutation de soirée : `cancel`, `delete`, `finalize-theme`, `finalize-film`, `fetch-films`, `fetch-films-discover`, `films` (DELETE + POST), `start-proposals`, `close-proposals`, `update-settings` — seul le créateur de la soirée peut effectuer ces actions.
 - **Suppression de `lib/encryption.ts`** et de la colonne `tmdb_token_encrypted` : aucun secret chiffré stocké en base.
 - **Patch CVE-2026-26278** (high, `fast-xml-parser` via `redoc`) via override pnpm `>=5.5.6`.
+- **Patch `flatted` (Prototype Pollution — GHSA-rf6f-7fwh-wjgh, high)** : override pnpm `>=3.4.2` (dépendance transitive de `@vitest/ui`).
+- **Audit de sécurité quotidien** : nouveau workflow `security-audit.yml` — tourne chaque jour à 7h (Paris), ouvre automatiquement une GitHub Issue si une vulnérabilité high/critical est détectée.
 - **Fix SSRF (CWE-918 / OWASP A10)** dans `POST /api/soirees/[id]/films` : `tmdb_id` est désormais validé comme entier positif avant injection dans l'URL TMDb — empêche toute manipulation du hostname ou du path.
 - **Fix sanitisation incomplète (CWE-116)** dans `app/docs/[slug]/page.tsx` : `.replace("../", "")` remplacé par `.slice(3)` — suppression exacte du préfixe `../` sans risque de première-occurrence-seulement.
 - **Exclusion de `coverage/` du scan CodeQL** : ajout au `.gitignore` pour éviter les faux positifs sur les fichiers générés par Vitest.

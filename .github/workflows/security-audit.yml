@@ -1,0 +1,65 @@
+name: Security Audit (scheduled)
+
+on:
+  schedule:
+    # Tous les jours à 07:00 heure de Paris (06:00 UTC)
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+jobs:
+  audit:
+    name: pnpm audit
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Run audit
+        id: audit
+        run: pnpm audit --audit-level=high 2>&1 | tee audit-output.txt
+        continue-on-error: true
+
+      - name: Open GitHub Issue on failure
+        if: steps.audit.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const output = fs.readFileSync('audit-output.txt', 'utf8');
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'security,audit',
+              state: 'open',
+            });
+            if (existing.data.length > 0) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.data[0].number,
+                body: `## Audit du ${new Date().toISOString().slice(0,10)}\n\`\`\`\n${output}\n\`\`\``,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `🔒 Vulnérabilité high/critical détectée — ${new Date().toISOString().slice(0,10)}`,
+                labels: ['security', 'audit'],
+                body: `Détectée par le workflow \`security-audit.yml\` (audit quotidien).\n\n\`\`\`\n${output}\n\`\`\`\n\nAjouter un override dans \`package.json > pnpm.overrides\` ou mettre à jour la dépendance directe.`,
+              });
+            }
+
+      - name: Fail if vulnerabilities found
+        if: steps.audit.outcome == 'failure'
+        run: exit 1
