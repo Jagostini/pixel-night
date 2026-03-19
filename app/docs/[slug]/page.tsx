@@ -29,7 +29,7 @@ function resolveDocLink(href: string): string {
     return `/docs/${slug}`
   }
   if (href.startsWith("../") && href.endsWith(".md")) {
-    return `https://github.com/Jagostini/pixel-night/blob/main/${href.replace("../", "")}`
+    return `https://github.com/Jagostini/pixel-night/blob/main/${href.slice(3)}`
   }
   return href
 }

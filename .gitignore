@@ -14,6 +14,9 @@
 /build
 /dist
 
+# test coverage (generated — ne pas versionner ni scanner)
+/coverage
+
 # generated assets (rebuilt by prebuild)
 /public/redoc.standalone.js
 
