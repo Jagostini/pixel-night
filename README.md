@@ -3,6 +3,7 @@
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-FF813F?style=flat&logo=buy-me-a-coffee&logoColor=white)](https://www.buymeacoffee.com/agostinij86)
 [![License: MIT + Commons Clause](https://img.shields.io/badge/License-MIT%20%2B%20Commons%20Clause-blue.svg)](./LICENSE)
 [![Open Source](https://img.shields.io/badge/open--source-contributions%20welcome-brightgreen)](https://github.com/Jagostini/pixel-night/issues)
+[![Plumber Score](https://score.getplumber.io/github.com/Jagostini/pixel-night.svg)](https://score.getplumber.io/github.com/Jagostini/pixel-night)
 
 Application web de soirées cinéma collaboratives. Les participants votent ensemble pour choisir un thème puis un film — sans compte, sans friction.
 
